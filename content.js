@@ -3,33 +3,60 @@ let assignations = {};
 
 // Fonction pour capturer les données d'une ligne
 function capturerDonneesLigne(row) {
-    // Récupérer le titre (exemple : "Mot de expire Bpassword")
+    // Récupérer le titre de la ligne
     let titleElement = row.querySelector('[data-testid*="TableCell{row"][data-testid*=", column: Title"] a');
     let title = titleElement ? titleElement.textContent.trim() : null;
     if (!title) {
         titleElement = row.querySelector('[data-testid*="TableCell{row"][data-testid*=", column: Title"] span');
         title = titleElement ? titleElement.textContent.trim() : null;
     }
-    // Récupérer les heures passées (exemple : 5)
-    let heuresElement = row.querySelector('[data-testid*="TableCell{row"][data-testid*=", column: Hrs spent"] span');
-    let heures = heuresElement ? parseFloat(heuresElement.textContent) : 0;
 
-    // Récupérer l'assigné (exemple : "tomjamon")
+    // Récupérer toutes les colonnes contenant des nombres (classe "firrQr")
+    let colonnesNumeriques = row.querySelectorAll('[data-testid^="TableCell{row"][role="gridcell"]');
+
+    // Stocker les sommes des colonnes dans un objet
+    let sommesParColonne = {};
+
+    // Parcourir chaque colonne pour vérifier si elle contient un nombre
+    colonnesNumeriques.forEach(colonne => {
+        // Récupérer le nom de la colonne (par exemple "Hrs spent")
+        let nomColonne = colonne.getAttribute('data-testid');
+        let match = nomColonne.match(/column: ([^}]*)/);
+        if (match) {
+            nomColonne = match[1];
+        }
+
+        // Vérifier si la colonne contient une valeur numérique
+        let valeurElement = colonne.querySelector('.firrqR span');
+        if (valeurElement) {
+            let valeur = parseFloat(valeurElement.textContent.trim());
+            if (!isNaN(valeur)) {
+                // Si la colonne a déjà une somme, on ajoute à la somme existante
+                if (!sommesParColonne[nomColonne]) {
+                    sommesParColonne[nomColonne] = 0;
+                }
+                sommesParColonne[nomColonne] += valeur;
+            }
+        }
+    });
+
+    // Récupérer l'assigné
     let assigneeElement = row.querySelector('[data-testid*="TableCell{row"][data-testid*=", column: Assignees"] img');
     let assigneeName = assigneeElement ? assigneeElement.alt : null;
 
-    // Si le titre est trouvé, on stocke les données en utilisant le titre comme clé
+    // Si le titre est trouvé, on stocke les données dans l'objet assignations
     if (title) {
         if (!assignations[title]) {
             assignations[title] = {
-                heures: 0,
+                sommesColonnes: {},
                 assignees: []
             };
         }
 
-        // Ajouter les heures et les assignés
-        assignations[title].heures = heures;
+        // Mettre à jour les sommes des colonnes pour ce titre
+        assignations[title].sommesColonnes = sommesParColonne;
 
+        // Ajouter l'assigné s'il n'est pas déjà présent
         if (assigneeName && !assignations[title].assignees.includes(assigneeName)) {
             assignations[title].assignees.push(assigneeName);
         }
@@ -59,7 +86,6 @@ function observerTableau() {
             mutations.forEach((mutation) => {
                 mutation.addedNodes.forEach((node) => {
                     // Vérifier si le noeud ajouté est une ligne avec role="row"
-                    console.log(node);
                     if (node.nodeType === 1 && node.matches('[role="row"]')) {
                         // Capturer les données de la ligne ajoutée
                         capturerDonneesLigne(node);
@@ -91,11 +117,16 @@ let intervalId = setInterval(() => {
 }, 1000);
 
 let intervalId2 = setInterval(() => {
-    afficherTotauxParAssigne();
-    mettreAJourTexteBouton();
-}, 5000);
+    console.log("Assignations:", assignations);
+    let tableau = document.querySelector('[data-testid="table-scroll-container"]');
 
-// Fonction pour calculer les totaux des heures par assigné
+    if (tableau) {
+        verifierTousLesLiens();
+    }
+    mettreAJourTexteBouton();
+}, 2000);
+
+// Fonction pour calculer les totaux des colonnes par assigné
 function calculerTotauxParAssigne() {
     let totaux = {};
 
@@ -103,44 +134,23 @@ function calculerTotauxParAssigne() {
     for (let titre in assignations) {
         let tache = assignations[titre];
 
-        // Pour chaque tâche, ajouter les heures aux assignés correspondants
+        // Pour chaque tâche, ajouter les valeurs par colonne aux assignés correspondants
         tache.assignees.forEach(assignee => {
             if (!totaux[assignee]) {
-                totaux[assignee] = 0;
+                totaux[assignee] = {};
             }
-            totaux[assignee] += tache.heures;
+
+            // Ajouter les sommes pour chaque colonne (par exemple, "Hrs spent")
+            for (let colonne in tache.sommesColonnes) {
+                if (!totaux[assignee][colonne]) {
+                    totaux[assignee][colonne] = 0;
+                }
+                totaux[assignee][colonne] += tache.sommesColonnes[colonne];
+            }
         });
     }
 
     return totaux;
-}
-
-// Fonction pour afficher les totaux de manière lisible
-function afficherTotauxParAssigne() {
-    let totaux = calculerTotauxParAssigne();
-    let resultats = [];
-
-    // Créer une chaîne lisible pour chaque assigné et ses heures
-    for (let assignee in totaux) {
-        resultats.push(`${assignee} - ${totaux[assignee]}`);
-    }
-
-    // Afficher les résultats
-    //alert(resultats.join("\n"));
-    console.log("Totaux par assigné:", resultats);
-}
-
-// Fonction pour récupérer le nombre total de tickets à partir du DOM
-function getTotalTicketsFromDOM() {
-    // Chercher l'élément contenant le nombre total de tickets
-    let totalTicketsElement = document.querySelector('span[data-testid="filter-results-count"]');
-
-    // Si l'élément existe, récupérer le texte et le convertir en nombre
-    console.log(totalTicketsElement);
-    if (totalTicketsElement) {
-        return parseInt(totalTicketsElement.textContent.trim(), 10);
-    }
-    return 0;  // Retourner 0 si l'élément n'est pas trouvé
 }
 
 // Insérer le bouton et la modal dans le document
@@ -178,7 +188,7 @@ const modalHTML = `
             background-color: white;
             padding: 20px;
             border-radius: 5px;
-            width: 300px;
+            width: 80%;
             max-width: 80%;
             text-align: left;
         }
@@ -211,30 +221,51 @@ const modalHTML = `
 `;
 document.body.insertAdjacentHTML('beforeend', modalHTML);
 
+// Fonction pour afficher les totaux dans un tableau dans la modal
 function afficherTotauxDansModal() {
     let totaux = calculerTotauxParAssigne();
     let modalContent = document.getElementById('modalContent');
 
-    // Créer le tableau HTML pour afficher les totaux
+    // Créer un ensemble unique de toutes les colonnes rencontrées
+    let colonnes = new Set();
+
+    // Parcourir les totaux pour collecter tous les types de colonnes
+    for (let assignee in totaux) {
+        for (let colonne in totaux[assignee]) {
+            colonnes.add(colonne);
+        }
+    }
+
+    // Créer le tableau HTML pour afficher les totaux par assigné et par colonne
     let tableauHTML = `
         <table style="width: 100%; border-collapse: collapse; text-align: left;">
             <thead>
                 <tr>
                     <th style="padding: 8px; border-bottom: 2px solid #ddd;">Assigné</th>
-                    <th style="padding: 8px; border-bottom: 2px solid #ddd;">Heures totales</th>
+    `;
+
+    // Ajouter les colonnes dynamiquement dans le tableau
+    colonnes.forEach(colonne => {
+        tableauHTML += `<th style="padding: 8px; border-bottom: 2px solid #ddd;">${colonne}</th>`;
+    });
+
+    tableauHTML += `
                 </tr>
             </thead>
             <tbody>
     `;
 
-    // Ajouter chaque assigné et ses heures dans le tableau
+    // Ajouter chaque assigné et ses valeurs par colonne dans le tableau
     for (let assignee in totaux) {
-        tableauHTML += `
-            <tr>
-                <td style="padding: 8px; border-bottom: 1px solid #ddd;">${assignee}</td>
-                <td style="padding: 8px; border-bottom: 1px solid #ddd;">${totaux[assignee]}</td>
-            </tr>
-        `;
+        tableauHTML += `<tr><td style="padding: 8px; border-bottom: 1px solid #ddd;">${assignee}</td>`;
+
+        // Ajouter les valeurs pour chaque colonne, en mettant "0" si aucune valeur n'existe
+        colonnes.forEach(colonne => {
+            let valeur = totaux[assignee][colonne] || 0;
+            tableauHTML += `<td style="padding: 8px; border-bottom: 1px solid #ddd;">${valeur}</td>`;
+        });
+
+        tableauHTML += `</tr>`;
     }
 
     // Fermer le tableau
@@ -265,21 +296,50 @@ function mettreAJourTexteBouton() {
     bouton.innerText = `Voir Totaux (${nombreDeTicketsCaptures}/${nombreTotalDeTickets})`;
 }
 
+function fermerModal() {
+    document.getElementById('totauxModal').style.display = 'none';
+}
+
 // Gérer l'ouverture et la fermeture de la modal
 document.getElementById('openModalBtn').addEventListener('click', () => {
     document.getElementById('totauxModal').style.display = 'flex';  // Afficher la modal
     afficherTotauxDansModal();  // Afficher les résultats dans la modal
 });
 
-document.getElementById('closeModalBtn').addEventListener('click', () => {
-    document.getElementById('totauxModal').style.display = 'none';  // Fermer la modal
-});
+document.getElementById('closeModalBtn').addEventListener('click', fermerModal);
 
 // Fermer la modal en cliquant en dehors de la boîte de contenu
 window.addEventListener('click', (event) => {
     let modal = document.getElementById('totauxModal');
     if (event.target === modal) {
-        modal.style.display = 'none';
+        fermerModal();
     }
 });
 
+// Écouter l'événement 'keydown' pour fermer la modal avec la touche ESC
+window.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {  // Vérifier si la touche est 'ESC'
+        let modal = document.getElementById('totauxModal');
+        if (modal.style.display === 'flex') {
+            fermerModal();
+        }
+    }
+});
+
+// Fonction pour récupérer le nombre total de tickets à partir du DOM
+function getTotalTicketsFromDOM() {
+    // Chercher l'élément contenant le nombre total de tickets
+    let totalTicketsElement = document.querySelector('span[data-testid="filter-results-count"]');
+
+    // Si l'élément existe, récupérer le texte et le convertir en nombre
+    console.log(totalTicketsElement);
+    if (totalTicketsElement) {
+        return parseInt(totalTicketsElement.textContent.trim(), 10);
+    }
+    return 0;  // Retourner 0 si l'élément n'est pas trouvé
+}
+
+// Fonction pour afficher les totaux de manière lisible
+function afficherTotauxParAssigne() {
+    console.log("Assignations:", assignations);
+}
