@@ -42,12 +42,17 @@ function capturerDonneesLigne(row) {
     let assigneeName = assigneeElement ? assigneeElement.alt : null;
     let assigneeAvatar = assigneeElement ? assigneeElement.src : null;  // Récupérer l'URL de l'avatar
 
+    // Récupérer le statut (colonne Status)
+    let statusElement = row.querySelector('[data-testid*="TableCell{row"][data-testid*=", column: Status"] span');
+    let statut = statusElement ? statusElement.textContent.trim() : "Non défini"; // Défaut si le statut n'est pas trouvé
+
     // Si le titre est trouvé, on stocke les données dans l'objet assignations
     if (title) {
         if (!assignations[title]) {
             assignations[title] = {
                 sommesColonnes: {},
-                assignees: []
+                assignees: [],
+                statut: statut // Ajouter le statut dans assignations
             };
         }
 
@@ -157,10 +162,9 @@ function calculerTotauxParAssigne() {
 const modalHTML = `
     <style>
         /* Styles pour le bouton fixe */
-        #openModalBtn {
+        #openModalBtn, #openSummaryModalBtn {
             position: fixed;
             bottom: 20px;
-            right: 20px;
             padding: 10px 20px;
             background-color: #007bff;
             color: white;
@@ -169,6 +173,8 @@ const modalHTML = `
             cursor: pointer;
             z-index: 1000;
         }
+        #openModalBtn { right: 20px; }
+        #openSummaryModalBtn { right: 140px; }
 
         /* Styles pour la modal */
         .modal {
@@ -188,7 +194,7 @@ const modalHTML = `
             background-color: white;
             padding: 20px;
             border-radius: 5px;
-            width: 80%;
+            width: 300px;
             max-width: 80%;
             text-align: left;
         }
@@ -207,6 +213,7 @@ const modalHTML = `
 
     <!-- Bouton en position fixe -->
     <button id="openModalBtn">Voir Totaux</button>
+    <button id="openSummaryModalBtn">Voir Résumés</button>
 
     <!-- Modal pour afficher les totaux -->
     <div id="totauxModal" class="modal">
@@ -218,8 +225,47 @@ const modalHTML = `
             </div>
         </div>
     </div>
+
+    <!-- Modal pour afficher les résumés -->
+    <div id="summaryModal" class="modal">
+        <div class="modal-content">
+            <button class="close-btn" id="closeSummaryModalBtn">Fermer</button>
+            <h3>Résumé par statut</h3>
+            <div id="summaryContent">
+                <!-- Les résumés seront insérés ici -->
+            </div>
+        </div>
+    </div>
 `;
 document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+// Fonction pour calculer les totaux par statut
+function calculerTotauxParStatut() {
+    let totauxParStatut = {};
+
+    // Parcourir toutes les lignes capturées
+    for (let titre in assignations) {
+        let tache = assignations[titre];
+        let statut = tache.statut;  // Assumons que nous avons stocké le statut de chaque ligne lors de la capture
+
+        if (!statut) continue; // Si le statut n'est pas défini, on ignore cette ligne
+
+        // Initialiser le statut dans les totaux s'il n'existe pas encore
+        if (!totauxParStatut[statut]) {
+            totauxParStatut[statut] = {};
+        }
+
+        // Ajouter les sommes pour chaque colonne (par exemple "Hrs spent")
+        for (let colonne in tache.sommesColonnes) {
+            if (!totauxParStatut[statut][colonne]) {
+                totauxParStatut[statut][colonne] = 0;
+            }
+            totauxParStatut[statut][colonne] += tache.sommesColonnes[colonne];
+        }
+    }
+
+    return totauxParStatut;
+}
 
 // Fonction pour afficher les totaux dans un tableau dans la modal
 function afficherTotauxDansModal() {
@@ -349,3 +395,71 @@ function getTotalTicketsFromDOM() {
 function afficherTotauxParAssigne() {
     console.log("Assignations:", assignations);
 }
+
+// Fonction pour afficher les résumés par statut dans un tableau dans la modal
+function afficherResumesDansModal() {
+    let totauxParStatut = calculerTotauxParStatut();
+    let summaryContent = document.getElementById('summaryContent');
+
+    // Créer le tableau HTML pour afficher les résumés par statut et par colonne
+    let tableauHTML = `
+        <table style="width: 100%; border-collapse: collapse; text-align: left;">
+            <thead>
+                <tr>
+                    <th style="padding: 8px; border-bottom: 2px solid #ddd;">Statut</th>
+                    <th style="padding: 8px; border-bottom: 2px solid #ddd;">Détails</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    // Ajouter chaque statut et ses totaux dans le tableau
+    for (let statut in totauxParStatut) {
+        let details = '';
+
+        for (let colonne in totauxParStatut[statut]) {
+            details += `${colonne}: ${totauxParStatut[statut][colonne]} - `;
+        }
+
+        // Supprimer le dernier tiret (-) en trop
+        details = details.slice(0, -2);
+
+        tableauHTML += `
+            <tr>
+                <td style="padding: 8px; border-bottom: 1px solid #ddd;">${statut}</td>
+                <td style="padding: 8px; border-bottom: 1px solid #ddd;">${details}</td>
+            </tr>
+        `;
+    }
+
+    // Fermer le tableau
+    tableauHTML += `
+            </tbody>
+        </table>
+    `;
+
+    // Si aucun statut n'est trouvé, afficher un message
+    if (Object.keys(totauxParStatut).length === 0) {
+        tableauHTML = '<p>Aucun statut trouvé.</p>';
+    }
+
+    // Insérer le tableau dans la modal
+    summaryContent.innerHTML = tableauHTML;
+}
+// Gérer l'ouverture et la fermeture de la modal avec le bouton "Voir Résumés"
+document.getElementById('openSummaryModalBtn').addEventListener('click', () => {
+    document.getElementById('summaryModal').style.display = 'flex';  // Afficher la modal
+    afficherResumesDansModal();  // Afficher les résumés dans la modal
+});
+
+document.getElementById('closeSummaryModalBtn').addEventListener('click', () => {
+    document.getElementById('summaryModal').style.display = 'none';  // Fermer la modal
+});
+
+// Fermer la modal en cliquant en dehors de la boîte de contenu
+window.addEventListener('click', (event) => {
+    let modal = document.getElementById('summaryModal');
+    if (event.target === modal) {
+        modal.style.display = 'none';
+    }
+});
