@@ -394,8 +394,7 @@ window.addEventListener('keydown', (event) => {
     }
 });
 
-// Fonction pour afficher les résumés par colonne textuelle dans plusieurs tableaux
-// Fonction pour afficher les résumés par colonne textuelle dans plusieurs tableaux avec styles
+// Fonction pour afficher les résumés par colonne textuelle dans plusieurs tableaux avec colonnes distinctes pour chaque valeur numérique
 function afficherResumesParColonnesDansModal() {
     let totauxParColonne = calculerTotauxParColonne();
     let summaryContent = document.getElementById('summaryContent');
@@ -403,8 +402,15 @@ function afficherResumesParColonnesDansModal() {
     // Réinitialiser le contenu
     summaryContent.innerHTML = '';
 
+    // Conteneur pour tous les tableaux avec mise en page en grille
+    let gridContainer = document.createElement('div');
+    gridContainer.className = 'grid-container';
+
     // Parcourir chaque colonne textuelle pour créer un tableau
     for (let colonne in totauxParColonne) {
+        // Créer l'en-tête avec les colonnes dynamiques pour chaque valeur numérique
+        let colonnesNumeriques = Object.keys(totauxParColonne[colonne][Object.keys(totauxParColonne[colonne])[0]]);
+
         let tableauHTML = `
             <div class="table-container">
                 <h4 class="table-title">${colonne}</h4>
@@ -412,28 +418,32 @@ function afficherResumesParColonnesDansModal() {
                     <thead>
                         <tr>
                             <th>${colonne}</th>
-                            <th>Détails</th>
+        `;
+
+        // Ajouter les en-têtes des colonnes numériques (Hrs spent, Hrs estimated, etc.)
+        colonnesNumeriques.forEach(colNum => {
+            tableauHTML += `<th>${colNum}</th>`;
+        });
+
+        tableauHTML += `
                         </tr>
                     </thead>
                     <tbody>
         `;
 
-        // Parcourir chaque valeur de cette colonne (ex: "Terminé", "Haute")
+        // Parcourir chaque valeur de cette colonne textuelle (ex: "Terminé", "Haute")
         for (let valeurColonne in totauxParColonne[colonne]) {
-            let details = '';
-
-            // Parcourir chaque colonne numérique et ajouter les totaux
-            for (let colonneNumerique in totauxParColonne[colonne][valeurColonne]) {
-                details += `${colonneNumerique}: ${totauxParColonne[colonne][valeurColonne][colonneNumerique]}<br>`;
-            }
-
-            // Ajouter une ligne pour chaque valeur de la colonne (ex: "Terminé", "Haute")
             tableauHTML += `
                 <tr>
                     <td>${valeurColonne}</td>
-                    <td>${details}</td>
-                </tr>
             `;
+
+            // Ajouter les valeurs numériques dans leurs colonnes respectives
+            colonnesNumeriques.forEach(colNum => {
+                tableauHTML += `<td>${totauxParColonne[colonne][valeurColonne][colNum] || 0}</td>`;
+            });
+
+            tableauHTML += `</tr>`;
         }
 
         // Fermer le tableau
@@ -443,9 +453,12 @@ function afficherResumesParColonnesDansModal() {
             </div>
         `;
 
-        // Ajouter chaque tableau à la modal
-        summaryContent.innerHTML += tableauHTML;
+        // Ajouter chaque tableau dans le conteneur de la grille
+        gridContainer.innerHTML += tableauHTML;
     }
+
+    // Ajouter le conteneur de la grille dans la modal
+    summaryContent.appendChild(gridContainer);
 
     // Si aucun total n'est trouvé, afficher un message
     if (Object.keys(totauxParColonne).length === 0) {
@@ -456,12 +469,19 @@ function afficherResumesParColonnesDansModal() {
 // Ajouter les styles dans le <head>
 const styles = `
     <style>
-        /* Conteneur de tableau avec disposition en inline-block */
+        /* Conteneur en grille */
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); /* Adaptation automatique des colonnes */
+            grid-gap: 20px; /* Espacement entre les tableaux */
+        }
+
+        /* Conteneur de tableau avec style */
         .table-container {
-            display: inline-block;
-            vertical-align: top;
-            margin: 10px;
-            width: 300px;
+            background-color: #fff;
+            border-radius: 5px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         }
 
         /* Titre du tableau */
@@ -480,8 +500,8 @@ const styles = `
         .styled-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 20px;
-            border-radius: 5px;
+            margin-bottom: 0;
+            border-radius: 0 0 5px 5px;
             overflow: hidden;
         }
 
@@ -512,7 +532,6 @@ const styles = `
         .styled-table td {
             vertical-align: top;
         }
-
     </style>
 `;
 
