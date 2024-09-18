@@ -19,19 +19,16 @@ function capturerDonneesLigne(row) {
 
     // Parcourir chaque colonne pour vérifier si elle contient un nombre
     colonnesNumeriques.forEach(colonne => {
-        // Récupérer le nom de la colonne (par exemple "Hrs spent")
         let nomColonne = colonne.getAttribute('data-testid');
         let match = nomColonne.match(/column: ([^}]*)/);
         if (match) {
             nomColonne = match[1];
         }
 
-        // Vérifier si la colonne contient une valeur numérique
         let valeurElement = colonne.querySelector('.firrqR span');
         if (valeurElement) {
             let valeur = parseFloat(valeurElement.textContent.trim());
             if (!isNaN(valeur)) {
-                // Si la colonne a déjà une somme, on ajoute à la somme existante
                 if (!sommesParColonne[nomColonne]) {
                     sommesParColonne[nomColonne] = 0;
                 }
@@ -40,9 +37,10 @@ function capturerDonneesLigne(row) {
         }
     });
 
-    // Récupérer l'assigné
+    // Récupérer l'assigné et l'URL de l'avatar
     let assigneeElement = row.querySelector('[data-testid*="TableCell{row"][data-testid*=", column: Assignees"] img');
     let assigneeName = assigneeElement ? assigneeElement.alt : null;
+    let assigneeAvatar = assigneeElement ? assigneeElement.src : null;  // Récupérer l'URL de l'avatar
 
     // Si le titre est trouvé, on stocke les données dans l'objet assignations
     if (title) {
@@ -53,12 +51,11 @@ function capturerDonneesLigne(row) {
             };
         }
 
-        // Mettre à jour les sommes des colonnes pour ce titre
         assignations[title].sommesColonnes = sommesParColonne;
 
-        // Ajouter l'assigné s'il n'est pas déjà présent
-        if (assigneeName && !assignations[title].assignees.includes(assigneeName)) {
-            assignations[title].assignees.push(assigneeName);
+        // Ajouter l'assigné et son avatar s'il n'est pas déjà présent
+        if (assigneeName && !assignations[title].assignees.some(a => a.name === assigneeName)) {
+            assignations[title].assignees.push({ name: assigneeName, avatar: assigneeAvatar });
         }
     }
 }
@@ -136,16 +133,19 @@ function calculerTotauxParAssigne() {
 
         // Pour chaque tâche, ajouter les valeurs par colonne aux assignés correspondants
         tache.assignees.forEach(assignee => {
-            if (!totaux[assignee]) {
-                totaux[assignee] = {};
+            if (!totaux[assignee.name]) {
+                totaux[assignee.name] = {
+                    avatar: assignee.avatar,
+                    colonnes: {}
+                };
             }
 
             // Ajouter les sommes pour chaque colonne (par exemple, "Hrs spent")
             for (let colonne in tache.sommesColonnes) {
-                if (!totaux[assignee][colonne]) {
-                    totaux[assignee][colonne] = 0;
+                if (!totaux[assignee.name].colonnes[colonne]) {
+                    totaux[assignee.name].colonnes[colonne] = 0;
                 }
-                totaux[assignee][colonne] += tache.sommesColonnes[colonne];
+                totaux[assignee.name].colonnes[colonne] += tache.sommesColonnes[colonne];
             }
         });
     }
@@ -231,7 +231,7 @@ function afficherTotauxDansModal() {
 
     // Parcourir les totaux pour collecter tous les types de colonnes
     for (let assignee in totaux) {
-        for (let colonne in totaux[assignee]) {
+        for (let colonne in totaux[assignee].colonnes) {
             colonnes.add(colonne);
         }
     }
@@ -257,11 +257,17 @@ function afficherTotauxDansModal() {
 
     // Ajouter chaque assigné et ses valeurs par colonne dans le tableau
     for (let assignee in totaux) {
-        tableauHTML += `<tr><td style="padding: 8px; border-bottom: 1px solid #ddd;">${assignee}</td>`;
+        let assigneeData = totaux[assignee];  // Récupérer les données de l'assigné
+
+        tableauHTML += `<tr>
+            <td style="padding: 8px; border-bottom: 1px solid #ddd;">
+                <img src="${assigneeData.avatar}" alt="${assignee}" style="width: 20px; height: 20px; border-radius: 50%; vertical-align: middle; margin-right: 8px;">
+                ${assignee}
+            </td>`;
 
         // Ajouter les valeurs pour chaque colonne, en mettant "0" si aucune valeur n'existe
         colonnes.forEach(colonne => {
-            let valeur = totaux[assignee][colonne] || 0;
+            let valeur = assigneeData.colonnes[colonne] || 0;
             tableauHTML += `<td style="padding: 8px; border-bottom: 1px solid #ddd;">${valeur}</td>`;
         });
 
