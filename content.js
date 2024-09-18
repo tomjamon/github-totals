@@ -14,10 +14,10 @@ function capturerDonneesLigne(row) {
     // Récupérer toutes les colonnes contenant des nombres (classe "firrQr")
     let colonnesNumeriques = row.querySelectorAll('[data-testid^="TableCell{row"][role="gridcell"]');
 
-    // Stocker les sommes des colonnes dans un objet
+    // Stocker les sommes des colonnes numériques dans un objet
     let sommesParColonne = {};
 
-    // Parcourir chaque colonne pour vérifier si elle contient un nombre
+    // Parcourir chaque colonne pour vérifier si elle contient un nombre (classe "firrQr")
     colonnesNumeriques.forEach(colonne => {
         let nomColonne = colonne.getAttribute('data-testid');
         let match = nomColonne.match(/column: ([^}]*)/);
@@ -40,11 +40,27 @@ function capturerDonneesLigne(row) {
     // Récupérer l'assigné et l'URL de l'avatar
     let assigneeElement = row.querySelector('[data-testid*="TableCell{row"][data-testid*=", column: Assignees"] img');
     let assigneeName = assigneeElement ? assigneeElement.alt : null;
-    let assigneeAvatar = assigneeElement ? assigneeElement.src : null;  // Récupérer l'URL de l'avatar
+    let assigneeAvatar = assigneeElement ? assigneeElement.src : null;
 
-    // Récupérer le statut (colonne Status)
-    let statusElement = row.querySelector('[data-testid*="TableCell{row"][data-testid*=", column: Status"] span');
-    let statut = statusElement ? statusElement.textContent.trim() : "Non défini"; // Défaut si le statut n'est pas trouvé
+    // Capturer les colonnes textuelles spécifiques avec la classe "hWqAbU", en excluant "Title" et "Assignees"
+    let colonnesTextuelles = {};
+    let textColumns = row.querySelectorAll('[role="gridcell"]');
+    textColumns.forEach(colonne => {
+        let nomColonne = colonne.getAttribute('data-testid');
+        let match = nomColonne.match(/column: ([^}]*)/);
+        if (match) {
+            nomColonne = match[1];
+
+            // Exclure les colonnes "Title" et "Assignees"
+            if (nomColonne !== 'Title' && nomColonne !== 'Assignees') {
+                // Vérifier si l'élément a un texte avec la classe "hWqAbU"
+                let valeurElement = colonne.querySelector('.hWqAbU');
+                if (valeurElement) {
+                    colonnesTextuelles[nomColonne] = valeurElement.textContent.trim();
+                }
+            }
+        }
+    });
 
     // Si le titre est trouvé, on stocke les données dans l'objet assignations
     if (title) {
@@ -52,7 +68,7 @@ function capturerDonneesLigne(row) {
             assignations[title] = {
                 sommesColonnes: {},
                 assignees: [],
-                statut: statut // Ajouter le statut dans assignations
+                colonnesTextuelles: colonnesTextuelles // Stocker les colonnes textuelles filtrées
             };
         }
 
@@ -64,7 +80,6 @@ function capturerDonneesLigne(row) {
         }
     }
 }
-
 function verifierTousLesLiens() {
     // Sélectionner toutes les lignes déjà présentes dans le DOM avec le rôle "row"
     let lignesExistantes = document.querySelectorAll('[role="row"]');
@@ -194,7 +209,8 @@ const modalHTML = `
             background-color: white;
             padding: 20px;
             border-radius: 5px;
-            width: 300px;
+            width: 100%;
+            margin: 5%;
             max-width: 80%;
             text-align: left;
         }
@@ -378,6 +394,131 @@ window.addEventListener('keydown', (event) => {
     }
 });
 
+// Fonction pour afficher les résumés par colonne textuelle dans plusieurs tableaux
+// Fonction pour afficher les résumés par colonne textuelle dans plusieurs tableaux avec styles
+function afficherResumesParColonnesDansModal() {
+    let totauxParColonne = calculerTotauxParColonne();
+    let summaryContent = document.getElementById('summaryContent');
+
+    // Réinitialiser le contenu
+    summaryContent.innerHTML = '';
+
+    // Parcourir chaque colonne textuelle pour créer un tableau
+    for (let colonne in totauxParColonne) {
+        let tableauHTML = `
+            <div class="table-container">
+                <h4 class="table-title">${colonne}</h4>
+                <table class="styled-table">
+                    <thead>
+                        <tr>
+                            <th>${colonne}</th>
+                            <th>Détails</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+        // Parcourir chaque valeur de cette colonne (ex: "Terminé", "Haute")
+        for (let valeurColonne in totauxParColonne[colonne]) {
+            let details = '';
+
+            // Parcourir chaque colonne numérique et ajouter les totaux
+            for (let colonneNumerique in totauxParColonne[colonne][valeurColonne]) {
+                details += `${colonneNumerique}: ${totauxParColonne[colonne][valeurColonne][colonneNumerique]}<br>`;
+            }
+
+            // Ajouter une ligne pour chaque valeur de la colonne (ex: "Terminé", "Haute")
+            tableauHTML += `
+                <tr>
+                    <td>${valeurColonne}</td>
+                    <td>${details}</td>
+                </tr>
+            `;
+        }
+
+        // Fermer le tableau
+        tableauHTML += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+
+        // Ajouter chaque tableau à la modal
+        summaryContent.innerHTML += tableauHTML;
+    }
+
+    // Si aucun total n'est trouvé, afficher un message
+    if (Object.keys(totauxParColonne).length === 0) {
+        summaryContent.innerHTML = '<p>Aucune donnée trouvée.</p>';
+    }
+}
+
+// Ajouter les styles dans le <head>
+const styles = `
+    <style>
+        /* Conteneur de tableau avec disposition en inline-block */
+        .table-container {
+            display: inline-block;
+            vertical-align: top;
+            margin: 10px;
+            width: 300px;
+        }
+
+        /* Titre du tableau */
+        .table-title {
+            background-color: #f7f7f7;
+            padding: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            text-align: center;
+            border-radius: 5px 5px 0 0;
+            border: 1px solid #ddd;
+            margin: 0;
+        }
+
+        /* Tableau stylisé */
+        .styled-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .styled-table thead {
+            background-color: #f1f1f1;
+        }
+
+        .styled-table th, .styled-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        /* Alternance des couleurs de fond */
+        .styled-table tbody tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        .styled-table tbody tr:nth-child(odd) {
+            background-color: #ffffff;
+        }
+
+        .styled-table tbody tr:hover {
+            background-color: #f1f1f1;
+        }
+
+        /* Style pour les cellules de détail */
+        .styled-table td {
+            vertical-align: top;
+        }
+
+    </style>
+`;
+
+// Ajouter les styles dans le <head>
+document.head.insertAdjacentHTML('beforeend', styles);
+
 // Fonction pour récupérer le nombre total de tickets à partir du DOM
 function getTotalTicketsFromDOM() {
     // Chercher l'élément contenant le nombre total de tickets
@@ -391,9 +532,40 @@ function getTotalTicketsFromDOM() {
     return 0;  // Retourner 0 si l'élément n'est pas trouvé
 }
 
-// Fonction pour afficher les totaux de manière lisible
-function afficherTotauxParAssigne() {
-    console.log("Assignations:", assignations);
+// Fonction pour calculer les totaux par colonne textuelle (autre que Title et Assignees)
+function calculerTotauxParColonne() {
+    let totauxParColonne = {};
+
+    // Parcourir toutes les lignes capturées
+    for (let titre in assignations) {
+        let tache = assignations[titre];
+        let colonnesTextuelles = tache.colonnesTextuelles;
+
+        // Parcourir chaque colonne textuelle
+        for (let colonne in colonnesTextuelles) {
+            let valeurColonne = colonnesTextuelles[colonne];  // La valeur de la colonne (ex: "Terminé", "Haute")
+
+            // Initialiser la colonne dans les totaux s'il n'existe pas encore
+            if (!totauxParColonne[colonne]) {
+                totauxParColonne[colonne] = {};
+            }
+
+            // Initialiser la valeur de la colonne dans les totaux s'il n'existe pas encore
+            if (!totauxParColonne[colonne][valeurColonne]) {
+                totauxParColonne[colonne][valeurColonne] = {};
+            }
+
+            // Ajouter les sommes pour chaque colonne numérique
+            for (let colonneNumerique in tache.sommesColonnes) {
+                if (!totauxParColonne[colonne][valeurColonne][colonneNumerique]) {
+                    totauxParColonne[colonne][valeurColonne][colonneNumerique] = 0;
+                }
+                totauxParColonne[colonne][valeurColonne][colonneNumerique] += tache.sommesColonnes[colonneNumerique];
+            }
+        }
+    }
+
+    return totauxParColonne;
 }
 
 // Fonction pour afficher les résumés par statut dans un tableau dans la modal
@@ -449,7 +621,8 @@ function afficherResumesDansModal() {
 // Gérer l'ouverture et la fermeture de la modal avec le bouton "Voir Résumés"
 document.getElementById('openSummaryModalBtn').addEventListener('click', () => {
     document.getElementById('summaryModal').style.display = 'flex';  // Afficher la modal
-    afficherResumesDansModal();  // Afficher les résumés dans la modal
+    afficherResumesParColonnesDansModal();
+    // afficherResumesDansModal();  // Afficher les résumés dans la modal
 });
 
 document.getElementById('closeSummaryModalBtn').addEventListener('click', () => {
