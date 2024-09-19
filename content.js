@@ -176,8 +176,10 @@ function calculerTotauxParAssigne() {
 // Insérer le bouton et la modal dans le document
 const modalHTML = `
     <!-- Bouton en position fixe -->
-    <button id="openModalBtn">Voir Totaux</button>
-    <button id="openSummaryModalBtn">Voir Résumés</button>
+    <div id="buttonContainer">
+        <button id="openModalBtn">Voir Totaux</button>
+        <button id="openSummaryModalBtn">Voir Résumés</button>
+    </div>
 
     <!-- Modal pour afficher les totaux -->
     <div id="totauxModal" class="modal">
@@ -422,19 +424,28 @@ function afficherResumesParColonnesDansModal() {
 // Ajouter les styles dans le <head>
 const styles = `
 <style>
-        #openModalBtn, #openSummaryModalBtn {
-            position: fixed;
-            bottom: 20px;
-            padding: 10px 20px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            z-index: 1000;
-        }
-        #openModalBtn { right: 20px; }
-        #openSummaryModalBtn { right: 140px; }
+    #buttonContainer {
+        position: fixed;
+        bottom: 0;
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        padding: 10px;
+        background-color: #fff; /* ou n'importe quelle couleur de fond souhaitée */
+        z-index: 1000;
+    }
+    
+    #openModalBtn, #openSummaryModalBtn {
+        flex: 1;
+        margin: 0 5px; /* Ajoute de l'espace entre les boutons */
+        padding: 10px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        text-align: center;
+    }
 
         /* Bouton pour fermer la modal */
         .close-btn {
@@ -710,7 +721,6 @@ function getTotalTicketsFromDOM() {
     return 0;  // Retourner 0 si l'élément n'est pas trouvé
 }
 
-// Fonction pour calculer les totaux par colonne textuelle (autre que Title et Assignees)
 function calculerTotauxParColonne() {
     let totauxParColonne = {};
 
