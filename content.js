@@ -183,7 +183,6 @@ const modalHTML = `
     <div id="totauxModal" class="modal">
         <div class="modal-content">
             <button class="close-btn" id="closeModalBtn">X</button>
-            <h3>Totaux par assigné</h3>
             <div id="modalContent">
                 <!-- Les totaux seront insérés ici -->
             </div>
@@ -455,12 +454,6 @@ const styles = `
             height: 100%; /* Pour que le conteneur s'ajuste à la hauteur totale */
         }
         
-        
-        
-        
-        
-        
-        
 :root {
   --clr-primary: #81d4fa;
   --clr-primary-light: #e1f5fe;
@@ -481,6 +474,10 @@ const styles = `
   --clr-paid-font: #388e3c;
   --clr-link: #2962ff;
   --radius: 0.2rem;
+}
+
+[role="tabpanel"] {
+    font-family: 'Mukta', sans-serif;
 }
 
 .table-container table {
@@ -553,16 +550,8 @@ font-family: 'Mukta', sans-serif;
 
 /* Hover effect */
 .table-container tbody tr:hover {
-  background-color: var(--clr-gray300);
+  background-color: var(--clr-gray400);
 }
-     
-     
-     
-     
-     
-     
-     
-     
      
         /* Styles pour la modal qui prend tout l'écran */
         .modal {
@@ -612,6 +601,96 @@ font-family: 'Mukta', sans-serif;
             background: rgba(0, 0, 0, 0.5);
             z-index: 999; /* Juste en dessous de la modal */
         }
+        
+        
+        
+        /** 
+        APPLY CSS ON GITHUB PROJECT
+         */
+[data-testid^="table-group"] {
+  box-shadow: 0 5px 10px var(--clr-gray300);
+  background-color: white;
+}
+
+[data-testid^="table-group"] [role="rowgroup"] {
+  background-color: var(--clr-primary-light);
+  font-size: 0.7rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  color: var(--clr-gray600);
+}
+
+[data-testid^="table-group"] [role="row"] {
+    padding: 10px 0;
+    height: auto !important;
+}
+
+[data-testid^="table-group"] [role="row"] [role="gridcell"] {
+  border:none;
+}
+
+
+[data-testid^="table-group"] [role="row"]:nth-child(even) {
+  background-color: white !important;
+}
+
+[data-testid^="table-group"] [role="row"]:nth-child(odd) {
+  background-color: white !important;
+}
+
+[data-testid^="table-group"] [role="row"]:hover {
+  background-color: var(--clr-gray300) !important;
+}
+
+[data-testid^="table-group"] .status {
+  border-radius: var(--radius);
+  /*padding: 0.2rem 1rem;*/
+  text-align: center;
+}
+
+[data-testid^="table-group"] .status-pending {
+  background-color: var(--clr-pending);
+  color: var(--clr-pending-font);
+}
+
+[data-testid^="table-group"] .status-paid {
+  background-color: var(--clr-paid);
+  color: var(--clr-paid-font);
+}
+
+[data-testid^="table-group"] .status-unpaid {
+  background-color: var(--clr-unpaid);
+  color: var(--clr-unpaid-font);
+}
+
+[data-testid^="table-group"] .amount {
+  text-align: right;
+}
+
+[data-testid^="single-select-token"] {
+    border-radius: 0.2rem;
+    width:100%;
+    flex:1;
+    /* background-color: red; */
+    padding: 0.5rem 1rem;
+    height: auto;
+    text-align: center;
+    border: none;
+}
+div:has([data-testid^="single-select-token"]) {
+    width:100%;
+    flex:1;
+}
+
+[data-testid^="group-name"] {
+      padding: 1rem 2rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1rem;
+      font-size: 0.7rem;
+      font-weight: 900;
+      color: var(--clr-gray600);
+}
+    
     </style>
 `;
 
