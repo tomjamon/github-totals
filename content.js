@@ -175,58 +175,6 @@ function calculerTotauxParAssigne() {
 
 // Insérer le bouton et la modal dans le document
 const modalHTML = `
-    <style>
-        /* Styles pour le bouton fixe */
-        #openModalBtn, #openSummaryModalBtn {
-            position: fixed;
-            bottom: 20px;
-            padding: 10px 20px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            z-index: 1000;
-        }
-        #openModalBtn { right: 20px; }
-        #openSummaryModalBtn { right: 140px; }
-
-        /* Styles pour la modal */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1001;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal-content {
-            background-color: white;
-            padding: 20px;
-            border-radius: 5px;
-            width: 100%;
-            margin: 5%;
-            max-width: 80%;
-            text-align: left;
-        }
-
-        /* Bouton pour fermer la modal */
-        .close-btn {
-            background-color: red;
-            color: white;
-            padding: 5px 10px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            float: right;
-        }
-    </style>
-
     <!-- Bouton en position fixe -->
     <button id="openModalBtn">Voir Totaux</button>
     <button id="openSummaryModalBtn">Voir Résumés</button>
@@ -234,7 +182,7 @@ const modalHTML = `
     <!-- Modal pour afficher les totaux -->
     <div id="totauxModal" class="modal">
         <div class="modal-content">
-            <button class="close-btn" id="closeModalBtn">Fermer</button>
+            <button class="close-btn" id="closeModalBtn">X</button>
             <h3>Totaux par assigné</h3>
             <div id="modalContent">
                 <!-- Les totaux seront insérés ici -->
@@ -245,8 +193,7 @@ const modalHTML = `
     <!-- Modal pour afficher les résumés -->
     <div id="summaryModal" class="modal">
         <div class="modal-content">
-            <button class="close-btn" id="closeSummaryModalBtn">Fermer</button>
-            <h3>Résumé par statut</h3>
+            <button class="close-btn" id="closeSummaryModalBtn">X</button>
             <div id="summaryContent">
                 <!-- Les résumés seront insérés ici -->
             </div>
@@ -300,10 +247,12 @@ function afficherTotauxDansModal() {
 
     // Créer le tableau HTML pour afficher les totaux par assigné et par colonne
     let tableauHTML = `
-        <table style="width: 100%; border-collapse: collapse; text-align: left;">
-            <thead>
-                <tr>
-                    <th style="padding: 8px; border-bottom: 2px solid #ddd;">Assigné</th>
+<div class="table-container">
+                <!--<h4 class="table-title">Assignes</h4>-->
+                <table class="styled-table">
+                    <thead>
+                        <tr>
+                            <th>Assignes</th>
     `;
 
     // Ajouter les colonnes dynamiquement dans le tableau
@@ -338,8 +287,9 @@ function afficherTotauxDansModal() {
 
     // Fermer le tableau
     tableauHTML += `
-            </tbody>
-        </table>
+            </tr>
+                    </thead>
+                    <tbody>
     `;
 
     // Si aucun assigné n'est trouvé, afficher un message
@@ -413,7 +363,7 @@ function afficherResumesParColonnesDansModal() {
 
         let tableauHTML = `
             <div class="table-container">
-                <h4 class="table-title">${colonne}</h4>
+                <!--<h4 class="table-title">${colonne}</h4>-->
                 <table class="styled-table">
                     <thead>
                         <tr>
@@ -457,6 +407,10 @@ function afficherResumesParColonnesDansModal() {
         gridContainer.innerHTML += tableauHTML;
     }
 
+    const link = document.createElement('link');
+    link.href = 'https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&family=Mukta:wght@300;400;600;700;800&family=Noto+Sans:wght@400;700&display=swap';
+    link.rel = 'stylesheet';
+    document.head.appendChild(link);
     // Ajouter le conteneur de la grille dans la modal
     summaryContent.appendChild(gridContainer);
 
@@ -468,69 +422,195 @@ function afficherResumesParColonnesDansModal() {
 
 // Ajouter les styles dans le <head>
 const styles = `
-    <style>
-        /* Conteneur en grille */
+<style>
+        #openModalBtn, #openSummaryModalBtn {
+            position: fixed;
+            bottom: 20px;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            z-index: 1000;
+        }
+        #openModalBtn { right: 20px; }
+        #openSummaryModalBtn { right: 140px; }
+
+        /* Bouton pour fermer la modal */
+        .close-btn {
+            background-color: red;
+            color: white;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            float: right;
+        }
+                
         .grid-container {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); /* Adaptation automatique des colonnes */
-            grid-gap: 20px; /* Espacement entre les tableaux */
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            grid-gap: 20px;
+            height: 100%; /* Pour que le conteneur s'ajuste à la hauteur totale */
         }
+        
+        
+        
+        
+        
+        
+        
+:root {
+  --clr-primary: #81d4fa;
+  --clr-primary-light: #e1f5fe;
+  --clr-primary-dark: #4fc3f7;
+  --clr-gray100: #f9fbff;
+  --clr-gray150: #f4f6fb;
+  --clr-gray200: #eef1f6;
+  --clr-gray300: #e1e5ee;
+  --clr-gray400: #767b91;
+  --clr-gray500: #4f546c;
+  --clr-gray600: #2a324b;
+  --clr-gray700: #161d34;
+  --clr-pending: #fff0c2;
+  --clr-pending-font: #a68b00;
+  --clr-unpaid: #ffcdd2;
+  --clr-unpaid-font: #c62828;
+  --clr-paid: #c8e6c9;
+  --clr-paid-font: #388e3c;
+  --clr-link: #2962ff;
+  --radius: 0.2rem;
+}
 
-        /* Conteneur de tableau avec style */
-        .table-container {
-            background-color: #fff;
-            border-radius: 5px;
-            overflow: hidden;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+.table-container table {
+font-family: 'Mukta', sans-serif;
+  border-collapse: collapse;
+  box-shadow: 0 5px 10px var(--clr-gray600);
+  background-color: white;
+  text-align: left;
+  overflow: hidden;
+  width: 100%;
+  max-width: 800px;
+}
+
+.table-container thead {
+  box-shadow: 0 5px 10px var(--clr-gray300);
+}
+
+.table-container th {
+  padding: 1rem 2rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1rem;
+  font-size: 0.7rem;
+  font-weight: 900;
+  background-color: var(--clr-gray200);
+  color: var(--clr-gray600);
+}
+
+.table-container td {
+  padding: 1rem 2rem;
+}
+
+.table-container a {
+  text-decoration: none;
+  color: var(--clr-link);
+}
+
+.table-container .status {
+  border-radius: var(--radius);
+  padding: 0.2rem 1rem;
+  text-align: center;
+}
+
+.table-container .status-pending {
+  background-color: var(--clr-pending);
+  color: var(--clr-pending-font);
+}
+
+.table-container .status-paid {
+  background-color: var(--clr-paid);
+  color: var(--clr-paid-font);
+}
+
+.table-container .status-unpaid {
+  background-color: var(--clr-unpaid);
+  color: var(--clr-unpaid-font);
+}
+
+.table-container .amount {
+  text-align: right;
+}
+
+/* Alternating row colors */
+.table-container tbody tr:nth-child(even) {
+  background-color: var(--clr-gray200);
+}
+
+.table-container tbody tr:nth-child(odd) {
+  background-color: var(--clr-gray100);
+}
+
+/* Hover effect */
+.table-container tbody tr:hover {
+  background-color: var(--clr-gray300);
+}
+     
+     
+     
+     
+     
+     
+     
+     
+     
+        /* Styles pour la modal qui prend tout l'écran */
+        .modal {
+            display:none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(0, 0, 0, 0.5); /* Fond de la modal */
+            justify-content: center;
+            align-items: center;
+            z-index: 1000; /* Assure que la modal est au-dessus */
         }
-
-        /* Titre du tableau */
-        .table-title {
-            background-color: #f7f7f7;
-            padding: 10px;
-            font-size: 16px;
-            font-weight: bold;
-            text-align: center;
-            border-radius: 5px 5px 0 0;
-            border: 1px solid #ddd;
-            margin: 0;
+        
+        /* Contenu de la modal */
+        .modal-content {
+            width: 90vw;
+            height: 90vh;
+            border-radius: 10px;
+            padding: 20px;
+            overflow-y: auto; /* Scroll si le contenu dépasse en hauteur */
+            overflow-x: hidden; /* Pas de scroll horizontal */
         }
-
-        /* Tableau stylisé */
-        .styled-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 0;
-            border-radius: 0 0 5px 5px;
-            overflow: hidden;
+        
+        .modal.fade-in {
+            animation: fadeIn 0.3s ease;
         }
-
-        .styled-table thead {
-            background-color: #f1f1f1;
+        
+        /* Animation fade-in */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
         }
-
-        .styled-table th, .styled-table td {
-            padding: 10px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-
-        /* Alternance des couleurs de fond */
-        .styled-table tbody tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-
-        .styled-table tbody tr:nth-child(odd) {
-            background-color: #ffffff;
-        }
-
-        .styled-table tbody tr:hover {
-            background-color: #f1f1f1;
-        }
-
-        /* Style pour les cellules de détail */
-        .styled-table td {
-            vertical-align: top;
+        
+        /* Styles pour le backdrop */
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999; /* Juste en dessous de la modal */
         }
     </style>
 `;
@@ -587,71 +667,30 @@ function calculerTotauxParColonne() {
     return totauxParColonne;
 }
 
-// Fonction pour afficher les résumés par statut dans un tableau dans la modal
-function afficherResumesDansModal() {
-    let totauxParStatut = calculerTotauxParStatut();
-    let summaryContent = document.getElementById('summaryContent');
-
-    // Créer le tableau HTML pour afficher les résumés par statut et par colonne
-    let tableauHTML = `
-        <table style="width: 100%; border-collapse: collapse; text-align: left;">
-            <thead>
-                <tr>
-                    <th style="padding: 8px; border-bottom: 2px solid #ddd;">Statut</th>
-                    <th style="padding: 8px; border-bottom: 2px solid #ddd;">Détails</th>
-                </tr>
-            </thead>
-            <tbody>
-    `;
-
-    // Ajouter chaque statut et ses totaux dans le tableau
-    for (let statut in totauxParStatut) {
-        let details = '';
-
-        for (let colonne in totauxParStatut[statut]) {
-            details += `${colonne}: ${totauxParStatut[statut][colonne]} - `;
-        }
-
-        // Supprimer le dernier tiret (-) en trop
-        details = details.slice(0, -2);
-
-        tableauHTML += `
-            <tr>
-                <td style="padding: 8px; border-bottom: 1px solid #ddd;">${statut}</td>
-                <td style="padding: 8px; border-bottom: 1px solid #ddd;">${details}</td>
-            </tr>
-        `;
-    }
-
-    // Fermer le tableau
-    tableauHTML += `
-            </tbody>
-        </table>
-    `;
-
-    // Si aucun statut n'est trouvé, afficher un message
-    if (Object.keys(totauxParStatut).length === 0) {
-        tableauHTML = '<p>Aucun statut trouvé.</p>';
-    }
-
-    // Insérer le tableau dans la modal
-    summaryContent.innerHTML = tableauHTML;
-}
-// Gérer l'ouverture et la fermeture de la modal avec le bouton "Voir Résumés"
 document.getElementById('openSummaryModalBtn').addEventListener('click', () => {
-    document.getElementById('summaryModal').style.display = 'flex';  // Afficher la modal
+    document.getElementById('summaryModal').style.display = 'flex';
     afficherResumesParColonnesDansModal();
-    // afficherResumesDansModal();  // Afficher les résumés dans la modal
 });
 
 document.getElementById('closeSummaryModalBtn').addEventListener('click', () => {
-    document.getElementById('summaryModal').style.display = 'none';  // Fermer la modal
+    document.getElementById('summaryModal').style.display = 'none';
 });
 
-// Fermer la modal en cliquant en dehors de la boîte de contenu
+function fermerModals() {
+    document.getElementById('totauxModal').style.display = 'none';
+    document.getElementById('summaryModal').style.display = 'none';
+}
+
 window.addEventListener('click', (event) => {
-    let modal = document.getElementById('summaryModal');
-    if (event.target === modal) {
-        modal.style.display = 'none';
+    let summaryModal = document.getElementById('summaryModal');
+    let totauxModal = document.getElementById('totauxModal');
+    if ((event.target === summaryModal)||(event.target === totauxModal)) {
+        fermerModals();
+    }
+});
+
+window.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+        fermerModals();
     }
 });
