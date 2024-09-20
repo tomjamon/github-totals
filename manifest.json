@@ -2,10 +2,20 @@
   "manifest_version": 3,
   "name": "GitHub Project Heures Calculator",
   "version": "1.0",
+  "description": "Plugin avec option pour afficher le bouton Voir Résumé",
   "permissions": [
     "activeTab",
-    "scripting"
+    "scripting",
+    "storage"
   ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "images/icon16.png",
+      "48": "images/icon48.png",
+      "128": "images/icon128.png"
+    }
+  },
   "content_scripts": [
     {
       "matches": ["https://github.com/orgs/*/projects/*"],
@@ -15,12 +25,13 @@
   "background": {
     "service_worker": "background.js"
   },
-  "action": {
-    "default_popup": "popup.html",
-    "default_icon": {
-      "16": "images/icon16.png",
-      "48": "images/icon48.png",
-      "128": "images/icon128.png"
+  "web_accessible_resources": [
+    {
+      "resources": ["assets/css/tailwind.min.css"],
+      "matches": ["*://*/*"]
     }
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; style-src 'self' 'unsafe-inline';"
   }
 }

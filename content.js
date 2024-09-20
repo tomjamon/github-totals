@@ -1,6 +1,15 @@
 // Objet pour stocker les informations capturées
 let assignations = {};
 
+chrome.storage.sync.get(['voirResume', 'voirTotaux'], (result) => {
+    if (result.voirResume === 'no') {
+        document.getElementById('openModalBtn').style.display = 'none';
+    }
+    if (result.voirTotaux === 'no') {
+        document.getElementById('openSummaryModalBtn').style.display = 'none';
+    }
+});
+
 // Fonction pour capturer les données d'une ligne
 function capturerDonneesLigne(row) {
     // Récupérer le titre de la ligne
@@ -81,24 +90,16 @@ function capturerDonneesLigne(row) {
     }
 }
 function verifierTousLesLiens() {
-    // Sélectionner toutes les lignes déjà présentes dans le DOM avec le rôle "row"
     let lignesExistantes = document.querySelectorAll('[role="row"]');
-
-    // Parcourir toutes les lignes et capturer leurs données
     lignesExistantes.forEach(ligne => {
-        console.log('Ligne existante détectée:', ligne);
         capturerDonneesLigne(ligne);
     });
 }
 
-// Fonction qui initialise l'observation du DOM pour les lignes
 function observerTableau() {
-    // Sélectionner le conteneur de défilement de la table
     let tableau = document.querySelector('[data-testid="table-scroll-container"]');
-
     if (tableau) {
         verifierTousLesLiens();
-
         let observer = new MutationObserver((mutations) => {
             mutations.forEach((mutation) => {
                 mutation.addedNodes.forEach((node) => {
@@ -111,30 +112,20 @@ function observerTableau() {
             });
         });
 
-        // Observer les changements dans les lignes
         let config = { childList: true, subtree: true };
         observer.observe(tableau, config);
-
-        console.log("Observation des lignes démarrée.");
-    } else {
-        console.log("Tableau non trouvé, réessayer...");
     }
 }
 
-// Vérification périodique pour s'assurer que le tableau est bien chargé
 let intervalId = setInterval(() => {
     let tableau = document.querySelector('[data-testid="table-scroll-container"]');
     if (tableau) {
         clearInterval(intervalId);
-        console.log('Tableau trouvé, démarrage de l\'observation.');
         observerTableau();
-    } else {
-        console.log('Tableau non encore chargé, réessayer...');
     }
 }, 1000);
 
 let intervalId2 = setInterval(() => {
-    console.log("Assignations:", assignations);
     let tableau = document.querySelector('[data-testid="table-scroll-container"]');
 
     if (tableau) {
@@ -143,15 +134,10 @@ let intervalId2 = setInterval(() => {
     mettreAJourTexteBouton();
 }, 2000);
 
-// Fonction pour calculer les totaux des colonnes par assigné
 function calculerTotauxParAssigne() {
     let totaux = {};
-
-    // Parcourir toutes les lignes capturées
     for (let titre in assignations) {
         let tache = assignations[titre];
-
-        // Pour chaque tâche, ajouter les valeurs par colonne aux assignés correspondants
         tache.assignees.forEach(assignee => {
             if (!totaux[assignee.name]) {
                 totaux[assignee.name] = {
@@ -159,8 +145,6 @@ function calculerTotauxParAssigne() {
                     colonnes: {}
                 };
             }
-
-            // Ajouter les sommes pour chaque colonne (par exemple, "Hrs spent")
             for (let colonne in tache.sommesColonnes) {
                 if (!totaux[assignee.name].colonnes[colonne]) {
                     totaux[assignee.name].colonnes[colonne] = 0;
@@ -173,7 +157,6 @@ function calculerTotauxParAssigne() {
     return totaux;
 }
 
-// Insérer le bouton et la modal dans le document
 const modalHTML = `
     <!-- Bouton en position fixe -->
     <div id="buttonContainer">
@@ -203,7 +186,6 @@ const modalHTML = `
 `;
 document.body.insertAdjacentHTML('beforeend', modalHTML);
 
-// Fonction pour calculer les totaux par statut
 function calculerTotauxParStatut() {
     let totauxParStatut = {};
 
@@ -231,32 +213,23 @@ function calculerTotauxParStatut() {
     return totauxParStatut;
 }
 
-// Fonction pour afficher les totaux dans un tableau dans la modal
 function afficherTotauxDansModal() {
     let totaux = calculerTotauxParAssigne();
     let modalContent = document.getElementById('modalContent');
-
-    // Créer un ensemble unique de toutes les colonnes rencontrées
     let colonnes = new Set();
-
-    // Parcourir les totaux pour collecter tous les types de colonnes
     for (let assignee in totaux) {
         for (let colonne in totaux[assignee].colonnes) {
             colonnes.add(colonne);
         }
     }
-
-    // Créer le tableau HTML pour afficher les totaux par assigné et par colonne
     let tableauHTML = `
 <div class="table-container">
-                <!--<h4 class="table-title">Assignes</h4>-->
-                <table class="styled-table">
-                    <thead>
-                        <tr>
-                            <th>Assignes</th>
+    <table class="styled-table">
+        <thead>
+            <tr>
+                <th>Assignes</th>
     `;
 
-    // Ajouter les colonnes dynamiquement dans le tableau
     colonnes.forEach(colonne => {
         tableauHTML += `<th style="padding: 8px; border-bottom: 2px solid #ddd;">${colonne}</th>`;
     });
@@ -267,9 +240,8 @@ function afficherTotauxDansModal() {
             <tbody>
     `;
 
-    // Ajouter chaque assigné et ses valeurs par colonne dans le tableau
     for (let assignee in totaux) {
-        let assigneeData = totaux[assignee];  // Récupérer les données de l'assigné
+        let assigneeData = totaux[assignee];
 
         tableauHTML += `<tr>
             <td style="padding: 8px; border-bottom: 1px solid #ddd;">
@@ -277,7 +249,6 @@ function afficherTotauxDansModal() {
                 ${assignee}
             </td>`;
 
-        // Ajouter les valeurs pour chaque colonne, en mettant "0" si aucune valeur n'existe
         colonnes.forEach(colonne => {
             let valeur = assigneeData.colonnes[colonne] || 0;
             tableauHTML += `<td style="padding: 8px; border-bottom: 1px solid #ddd;">${valeur}</td>`;
@@ -286,32 +257,24 @@ function afficherTotauxDansModal() {
         tableauHTML += `</tr>`;
     }
 
-    // Fermer le tableau
     tableauHTML += `
             </tr>
                     </thead>
                     <tbody>
     `;
 
-    // Si aucun assigné n'est trouvé, afficher un message
     if (Object.keys(totaux).length === 0) {
         tableauHTML = '<p>Aucun assigné trouvé.</p>';
     }
 
-    // Insérer le tableau dans la modal
     modalContent.innerHTML = tableauHTML;
-
-    // Mettre à jour le texte du bouton avec le nombre de tickets capturés et total
     mettreAJourTexteBouton();
 }
 
-// Fonction pour mettre à jour le texte du bouton avec le nombre de tickets
 function mettreAJourTexteBouton() {
     let nombreDeTicketsCaptures = Object.keys(assignations).length;
     let nombreTotalDeTickets = getTotalTicketsFromDOM();
     let bouton = document.getElementById('openModalBtn');
-
-    // Mettre à jour le texte du bouton
     bouton.innerText = `Voir Totaux (${nombreDeTicketsCaptures}/${nombreTotalDeTickets})`;
 }
 
@@ -319,7 +282,6 @@ function fermerModal() {
     document.getElementById('totauxModal').style.display = 'none';
 }
 
-// Gérer l'ouverture et la fermeture de la modal
 document.getElementById('openModalBtn').addEventListener('click', () => {
     document.getElementById('totauxModal').style.display = 'flex';  // Afficher la modal
     afficherTotauxDansModal();  // Afficher les résultats dans la modal
@@ -327,7 +289,6 @@ document.getElementById('openModalBtn').addEventListener('click', () => {
 
 document.getElementById('closeModalBtn').addEventListener('click', fermerModal);
 
-// Fermer la modal en cliquant en dehors de la boîte de contenu
 window.addEventListener('click', (event) => {
     let modal = document.getElementById('totauxModal');
     if (event.target === modal) {
@@ -335,7 +296,6 @@ window.addEventListener('click', (event) => {
     }
 });
 
-// Écouter l'événement 'keydown' pour fermer la modal avec la touche ESC
 window.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {  // Vérifier si la touche est 'ESC'
         let modal = document.getElementById('totauxModal');
@@ -345,7 +305,6 @@ window.addEventListener('keydown', (event) => {
     }
 });
 
-// Fonction pour afficher les résumés par colonne textuelle dans plusieurs tableaux avec colonnes distinctes pour chaque valeur numérique
 function afficherResumesParColonnesDansModal() {
     let totauxParColonne = calculerTotauxParColonne();
     let summaryContent = document.getElementById('summaryContent');
@@ -421,7 +380,6 @@ function afficherResumesParColonnesDansModal() {
     }
 }
 
-// Ajouter les styles dans le <head>
 const styles = `
 <style>
     #buttonContainer {
@@ -705,10 +663,8 @@ div:has([data-testid^="single-select-token"]) {
     </style>
 `;
 
-// Ajouter les styles dans le <head>
 document.head.insertAdjacentHTML('beforeend', styles);
 
-// Fonction pour récupérer le nombre total de tickets à partir du DOM
 function getTotalTicketsFromDOM() {
     // Chercher l'élément contenant le nombre total de tickets
     let totalTicketsElement = document.querySelector('span[data-testid="filter-results-count"]');
@@ -723,27 +679,17 @@ function getTotalTicketsFromDOM() {
 
 function calculerTotauxParColonne() {
     let totauxParColonne = {};
-
-    // Parcourir toutes les lignes capturées
     for (let titre in assignations) {
         let tache = assignations[titre];
         let colonnesTextuelles = tache.colonnesTextuelles;
-
-        // Parcourir chaque colonne textuelle
         for (let colonne in colonnesTextuelles) {
-            let valeurColonne = colonnesTextuelles[colonne];  // La valeur de la colonne (ex: "Terminé", "Haute")
-
-            // Initialiser la colonne dans les totaux s'il n'existe pas encore
+            let valeurColonne = colonnesTextuelles[colonne];
             if (!totauxParColonne[colonne]) {
                 totauxParColonne[colonne] = {};
             }
-
-            // Initialiser la valeur de la colonne dans les totaux s'il n'existe pas encore
             if (!totauxParColonne[colonne][valeurColonne]) {
                 totauxParColonne[colonne][valeurColonne] = {};
             }
-
-            // Ajouter les sommes pour chaque colonne numérique
             for (let colonneNumerique in tache.sommesColonnes) {
                 if (!totauxParColonne[colonne][valeurColonne][colonneNumerique]) {
                     totauxParColonne[colonne][valeurColonne][colonneNumerique] = 0;
