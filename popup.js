@@ -14,10 +14,11 @@ document.addEventListener('DOMContentLoaded', () => {
 document.getElementById('saveOptions').addEventListener('click', () => {
     let voirResume = document.getElementById('voirResume').value;
     let voirTotaux = document.getElementById('voirTotaux').value;
+    let percen = document.getElementById('percen').value;
+    updatePercentage(percen);
 
     chrome.storage.sync.set({ voirResume, voirTotaux }, () => {
         console.log(`L'option "Voir Résumé" est maintenant : ${voirResume}`);
         console.log(`L'option "Voir Totaux" est maintenant : ${voirTotaux}`);
-        alert('Options sauvegardées !');
     });
 });

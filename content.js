@@ -1,4 +1,55 @@
-// Objet pour stocker les informations capturées
+function debounce(func, wait) {
+    let timeout;
+    return function() {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, arguments), wait);
+    };
+}
+
+function reloadPage() {
+    assignations = {};
+    observerTableau();
+}
+
+const debouncedReload = debounce(reloadPage, 1000);
+
+function observeTableScrollContainer() {
+    const targetNode = document.querySelector('[data-testid="table-scroll-container"]');
+    if (!targetNode) {
+        return;
+    }
+    const observerTable = new MutationObserver(function(mutationsList) {
+        for (let mutation of mutationsList) {
+            if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                mutation.addedNodes.forEach(node => {
+                    if (node.nodeType === 1 && node.tagName === 'DIV' && node.getAttribute('role') === 'rowgroup') {
+                        assignations = {};
+                        debouncedReload();
+                    }
+                });
+            }
+        }
+    });
+    observerTable.observe(targetNode,  { childList: true, subtree: true });
+}
+
+window.addEventListener('load', function() {
+    observeTableScrollContainer();
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 let assignations = {};
 
 chrome.storage.sync.get(['voirResume', 'voirTotaux'], (result) => {
@@ -56,6 +107,7 @@ function capturerDonneesLigne(row) {
     let textColumns = row.querySelectorAll('[role="gridcell"]');
     textColumns.forEach(colonne => {
         let nomColonne = colonne.getAttribute('data-testid');
+        if (!nomColonne) return;
         let match = nomColonne.match(/column: ([^}]*)/);
         if (match) {
             nomColonne = match[1];
@@ -89,6 +141,7 @@ function capturerDonneesLigne(row) {
         }
     }
 }
+
 function verifierTousLesLiens() {
     let lignesExistantes = document.querySelectorAll('[role="row"]');
     lignesExistantes.forEach(ligne => {
@@ -96,11 +149,13 @@ function verifierTousLesLiens() {
     });
 }
 
+let observer;
+
 function observerTableau() {
     let tableau = document.querySelector('[data-testid="table-scroll-container"]');
     if (tableau) {
         verifierTousLesLiens();
-        let observer = new MutationObserver((mutations) => {
+        observer = new MutationObserver((mutations) => {
             mutations.forEach((mutation) => {
                 mutation.addedNodes.forEach((node) => {
                     // Vérifier si le noeud ajouté est une ligne avec role="row"
@@ -112,8 +167,7 @@ function observerTableau() {
             });
         });
 
-        let config = { childList: true, subtree: true };
-        observer.observe(tableau, config);
+        observer.observe(tableau, { childList: true, subtree: true });
     }
 }
 
@@ -127,7 +181,6 @@ let intervalId = setInterval(() => {
 
 let intervalId2 = setInterval(() => {
     let tableau = document.querySelector('[data-testid="table-scroll-container"]');
-
     if (tableau) {
         verifierTousLesLiens();
     }
@@ -158,6 +211,22 @@ function calculerTotauxParAssigne() {
 }
 
 const modalHTML = `
+    <div class="gptots-popup" id="gptots-popup">
+        <div id="progress-container">
+            <div id="progress-bar"></div>
+            <div id="progress-text">
+                <div class="left-section" id="left-section">
+                    <div class="text-container">
+                        <h4 id="progress-count">- / -</h4>
+                        <p id="progress-status">Keep scrolling ...</p>
+                    </div>
+                </div>
+                <div class="right-section" id="right-section">
+                    -<br><span>analysed</span>
+                </div>
+            </div>
+        </div>
+    </div>
     <!-- Bouton en position fixe -->
     <div id="buttonContainer">
         <button id="openModalBtn">Voir Totaux</button>
@@ -271,13 +340,6 @@ function afficherTotauxDansModal() {
     mettreAJourTexteBouton();
 }
 
-function mettreAJourTexteBouton() {
-    let nombreDeTicketsCaptures = Object.keys(assignations).length;
-    let nombreTotalDeTickets = getTotalTicketsFromDOM();
-    let bouton = document.getElementById('openModalBtn');
-    bouton.innerText = `Voir Totaux (${nombreDeTicketsCaptures}/${nombreTotalDeTickets})`;
-}
-
 function fermerModal() {
     document.getElementById('totauxModal').style.display = 'none';
 }
@@ -383,8 +445,10 @@ function afficherResumesParColonnesDansModal() {
 const styles = `
 <style>
     #buttonContainer {
+        opacity:0;
         position: fixed;
-        bottom: 0;
+        transition: bottom 1s ease, opacity 1s ease;
+        bottom: -200px;;
         width: 100%;
         display: flex;
         justify-content: space-between;
@@ -519,7 +583,7 @@ font-family: 'Mukta', sans-serif;
 
 /* Hover effect */
 .table-container tbody tr:hover {
-  background-color: var(--clr-gray400);
+  background-color: var(--clr-gray300);
 }
      
         /* Styles pour la modal qui prend tout l'écran */
@@ -576,9 +640,23 @@ font-family: 'Mukta', sans-serif;
         /** 
         APPLY CSS ON GITHUB PROJECT
          */
-[data-testid^="table-group"] {
+div[data-testid^="table-group-"]:not([data-testid^="table-group-footer-"]) {
   box-shadow: 0 5px 10px var(--clr-gray300);
   background-color: white;
+    margin: 2rem;
+    width: calc(100% - 4rem) !important;
+}
+
+[data-testid^="table-group-footer-"]) {
+    background:grey !important;
+}
+
+div[data-testid="omnibar"]){
+    background: lightgray !important;
+}
+
+div[data-testid^="table-group"] div.gqOVRy:empty {
+    display:none;
 }
 
 [data-testid^="table-group"] [role="rowgroup"] {
@@ -598,17 +676,16 @@ font-family: 'Mukta', sans-serif;
   border:none;
 }
 
-
-[data-testid^="table-group"] [role="row"]:nth-child(even) {
-  background-color: white !important;
+[data-testid^="table-group"] [role="row"] [role="gridcell"] .firrqR {
+    font-size: 1rem;
 }
 
-[data-testid^="table-group"] [role="row"]:nth-child(odd) {
+[data-testid^="table-group"] [role="row"]:not([data-testid^="table-group-footer-"]) {
   background-color: white !important;
 }
 
 [data-testid^="table-group"] [role="row"]:hover {
-  background-color: var(--clr-gray300) !important;
+  background-color: var(--clr-gray200) !important;
 }
 
 [data-testid^="table-group"] .status {
@@ -660,21 +737,160 @@ div:has([data-testid^="single-select-token"]) {
       color: var(--clr-gray600);
 }
     
+    
     </style>
 `;
-
 document.head.insertAdjacentHTML('beforeend', styles);
 
-function getTotalTicketsFromDOM() {
-    // Chercher l'élément contenant le nombre total de tickets
-    let totalTicketsElement = document.querySelector('span[data-testid="filter-results-count"]');
+stylesPopupPercent =  `
+    <style>
+        .gptots-popup {
+            display: flex;
+            bottom: 0;
+            right: 0;
+            margin: 1rem;
+            padding: 1rem;
+            width:250px;
+            position: absolute;
+            cursor: pointer;
+            transition: right 1s ease, opacity 1s ease;
+        }
+        
+        #progress-container {
+        display: flex;
+        align-items: center;
+        background-color: #f0f0f0; /* Fond plus clair pour améliorer la visibilité du texte */
+        transition: width 0.3s ease, background-color 0.3s ease;
+        border-radius: 8px;
+        max-width: 300px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        position: relative;
+        overflow: hidden;
+        width:100%
+    }
 
-    // Si l'élément existe, récupérer le texte et le convertir en nombre
-    console.log(totalTicketsElement);
+        #progress-bar {
+        position: absolute;
+        width: 100%;
+        height: 100%; /* Prendre toute la hauteur du conteneur */
+        z-index: 0; /* Assurer que la progress-bar est derrière les autres éléments */
+    }
+
+        #progress-text {
+        display: flex;
+        width: 100%;
+        justify-content: space-between;
+        align-items: center;
+        z-index: 1; /* Priorité visuelle pour être devant la progress-bar */
+        position: relative;
+    }
+
+        .left-section {
+        display: flex;
+        align-items: center;
+        padding: 10px;
+    }
+
+        .text-container {
+        display: flex;
+        flex-direction: column;
+    }
+
+        .text-container h4 {
+        margin: 0;
+        font-size: 16px; /* Taille adaptée à celle de "99%" */
+        color: #666; /* Couleur identique à "99%" */
+        font-weight: bold;
+    }
+
+        .text-container p {
+        margin: 0;
+        font-size: 12px; /* Même taille que "raised" */
+        color: #666; /* Couleur identique à "raised" */
+    }
+
+        .right-section {
+        flex-grow: 1;
+        padding: 10px;
+        font-size: 16px;
+        font-weight: bold;
+        text-align: right;
+        color: #666;
+        z-index: 1;
+        position: relative;
+    }
+
+        .right-section span {
+        display: block;
+        font-size: 12px;
+    }
+    </style>
+`;
+document.head.insertAdjacentHTML('beforeend', stylesPopupPercent);
+
+function updatePercentage(percentage) {
+    const progressContainer = document.getElementById('progress-bar');
+    progressContainer.style.width = percentage + '%';
+    progressContainer.style.backgroundColor = calculateColor(percentage);
+
+    const rightSection = document.getElementById('right-section');
+    rightSection.innerHTML = percentage + '%<br><span>analysed</span>';
+
+    const gptotsPopup = document.getElementById('gptots-popup');
+    const buttonContainer = document.getElementById('buttonContainer');
+    if (percentage === 100) {
+        gptotsPopup.style.right = '-150px';
+        gptotsPopup.style.opacity = '0';
+        buttonContainer.style.opacity = '1';
+        buttonContainer.style.bottom = '0';
+        bottom
+    } else {
+        gptotsPopup.style.right = '0';
+        gptotsPopup.style.opacity = '1';
+        buttonContainer.style.opacity = '0';
+        buttonContainer.style.bottom = '-200px';
+    }
+}
+
+function calculateColor(percentage) {
+    let red, green;
+    if (percentage <= 50) {
+        red = 255;
+        green = Math.floor((percentage / 50) * 255);
+    } else {
+        green = 255;
+        red = Math.floor(255 - ((percentage - 50) / 50) * 255);
+    }
+    return `rgb(${red}, ${green}, 153)`;
+}
+
+function mettreAJourTexteBouton() {
+    let nombreDeTicketsCaptures = Object.keys(assignations).length;
+    let nombreTotalDeTickets = getTotalTicketsFromDOM();
+    let bouton = document.getElementById('openModalBtn');
+    bouton.innerText = `Voir Totaux (${nombreDeTicketsCaptures}/${nombreTotalDeTickets})`;
+    let gptotsModal = document.getElementById('progress-count');
+    gptotsModal.innerText = `${nombreDeTicketsCaptures} / ${nombreTotalDeTickets}`;
+
+
+
+    updatePercentage(Math.round((nombreDeTicketsCaptures / nombreTotalDeTickets) * 100));
+}
+
+
+
+
+
+
+
+
+
+function getTotalTicketsFromDOM() {
+    let totalTicketsElement = document.querySelector('span[data-testid="filter-results-count"]');
     if (totalTicketsElement) {
         return parseInt(totalTicketsElement.textContent.trim(), 10);
     }
-    return 0;  // Retourner 0 si l'élément n'est pas trouvé
+    return 0;
 }
 
 function calculerTotauxParColonne() {
