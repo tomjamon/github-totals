@@ -19,7 +19,10 @@
   "content_scripts": [
     {
       "matches": ["https://github.com/orgs/*/projects/*"],
-      "js": ["content.js"]
+      "css": ["assets/css/style.css"],
+      "js": [
+        "content.js"
+      ]
     }
   ],
   "background": {

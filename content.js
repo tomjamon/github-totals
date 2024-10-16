@@ -7,6 +7,7 @@ function debounce(func, wait) {
 }
 
 function reloadPage() {
+    console.log('Reloading page ...');
     assignations = {};
     observerTableau();
 }
@@ -21,8 +22,11 @@ function observeTableScrollContainer() {
     const observerTable = new MutationObserver(function(mutationsList) {
         for (let mutation of mutationsList) {
             if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                console.log('Table content changed');
                 mutation.addedNodes.forEach(node => {
+                    console.log(node);
                     if (node.nodeType === 1 && node.tagName === 'DIV' && node.getAttribute('role') === 'rowgroup') {
+                        console.log('New row added');
                         assignations = {};
                         debouncedReload();
                     }
@@ -37,19 +41,6 @@ window.addEventListener('load', function() {
     observeTableScrollContainer();
 });
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 let assignations = {};
 
 chrome.storage.sync.get(['voirResume', 'voirTotaux'], (result) => {
@@ -61,9 +52,13 @@ chrome.storage.sync.get(['voirResume', 'voirTotaux'], (result) => {
     }
 });
 
-// Fonction pour capturer les données d'une ligne
+/**
+ * Fonction pour capturer les données d'une ligne
+ * @param {HTMLElement} row L'élément de la ligne
+ * @returns {void}
+ * */
 function capturerDonneesLigne(row) {
-    // Récupérer le titre de la ligne
+
     let titleElement = row.querySelector('[data-testid*="TableCell{row"][data-testid*=", column: Title"] a');
     let title = titleElement ? titleElement.textContent.trim() : null;
     if (!title) {
@@ -71,20 +66,16 @@ function capturerDonneesLigne(row) {
         title = titleElement ? titleElement.textContent.trim() : null;
     }
 
-    // Récupérer toutes les colonnes contenant des nombres (classe "firrQr")
     let colonnesNumeriques = row.querySelectorAll('[data-testid^="TableCell{row"][role="gridcell"]');
-
-    // Stocker les sommes des colonnes numériques dans un objet
     let sommesParColonne = {};
 
-    // Parcourir chaque colonne pour vérifier si elle contient un nombre (classe "firrQr")
+    // Sum per column
     colonnesNumeriques.forEach(colonne => {
         let nomColonne = colonne.getAttribute('data-testid');
         let match = nomColonne.match(/column: ([^}]*)/);
         if (match) {
             nomColonne = match[1];
         }
-
         let valeurElement = colonne.querySelector('.firrqR span');
         if (valeurElement) {
             let valeur = parseFloat(valeurElement.textContent.trim());
@@ -97,12 +88,7 @@ function capturerDonneesLigne(row) {
         }
     });
 
-    // Récupérer l'assigné et l'URL de l'avatar
-    let assigneeElement = row.querySelector('[data-testid*="TableCell{row"][data-testid*=", column: Assignees"] img');
-    let assigneeName = assigneeElement ? assigneeElement.alt : null;
-    let assigneeAvatar = assigneeElement ? assigneeElement.src : null;
-
-    // Capturer les colonnes textuelles spécifiques avec la classe "hWqAbU", en excluant "Title" et "Assignees"
+    // List of Columns
     let colonnesTextuelles = {};
     let textColumns = row.querySelectorAll('[role="gridcell"]');
     textColumns.forEach(colonne => {
@@ -111,10 +97,7 @@ function capturerDonneesLigne(row) {
         let match = nomColonne.match(/column: ([^}]*)/);
         if (match) {
             nomColonne = match[1];
-
-            // Exclure les colonnes "Title" et "Assignees"
             if (nomColonne !== 'Title' && nomColonne !== 'Assignees') {
-                // Vérifier si l'élément a un texte avec la classe "hWqAbU"
                 let valeurElement = colonne.querySelector('.hWqAbU');
                 if (valeurElement) {
                     colonnesTextuelles[nomColonne] = valeurElement.textContent.trim();
@@ -123,23 +106,25 @@ function capturerDonneesLigne(row) {
         }
     });
 
-    // Si le titre est trouvé, on stocke les données dans l'objet assignations
+    // Line with title in key, and sum per column and assignees in value
     if (title) {
         if (!assignations[title]) {
             assignations[title] = {
                 sommesColonnes: {},
                 assignees: [],
-                colonnesTextuelles: colonnesTextuelles // Stocker les colonnes textuelles filtrées
+                colonnesTextuelles: colonnesTextuelles
             };
         }
-
         assignations[title].sommesColonnes = sommesParColonne;
-
-        // Ajouter l'assigné et son avatar s'il n'est pas déjà présent
+        let assigneeElement = row.querySelector('[data-testid*="TableCell{row"][data-testid*=", column: Assignees"] img');
+        let assigneeName = assigneeElement ? assigneeElement.alt : null;
+        let assigneeAvatar = assigneeElement ? assigneeElement.src : null;
         if (assigneeName && !assignations[title].assignees.some(a => a.name === assigneeName)) {
             assignations[title].assignees.push({ name: assigneeName, avatar: assigneeAvatar });
         }
     }
+
+    console.log(assignations);
 }
 
 function verifierTousLesLiens() {
@@ -300,7 +285,7 @@ function afficherTotauxDansModal() {
     `;
 
     colonnes.forEach(colonne => {
-        tableauHTML += `<th style="padding: 8px; border-bottom: 2px solid #ddd;">${colonne}</th>`;
+        tableauHTML += `<th style="padding: 8px;">${colonne}</th>`;
     });
 
     tableauHTML += `
@@ -479,38 +464,53 @@ const styles = `
             cursor: pointer;
             float: right;
         }
-                
-        .grid-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            grid-gap: 20px;
-            height: 100%; /* Pour que le conteneur s'ajuste à la hauteur totale */
+                        
+        :root {
+            --clr-primary: #81d4fa;
+            --clr-primary-light: #e1f5fe;
+            --clr-primary-dark: #4fc3f7;
+            --clr-gray100: #f9fbff;
+            --clr-gray150: #f4f6fb;
+            --clr-gray200: #eef1f6;
+            --clr-gray300: #e1e5ee;
+            --clr-gray400: #767b91;
+            --clr-gray500: #4f546c;
+            --clr-gray600: #2a324b;
+            --clr-gray700: #161d34;
+            --clr-pending: #fff0c2;
+            --clr-pending-font: #a68b00;
+            --clr-unpaid: #ffcdd2;
+            --clr-unpaid-font: #c62828;
+            --clr-paid: #c8e6c9;
+            --clr-paid-font: #388e3c;
+            --clr-link: #2962ff;
+            --radius: 0.2rem;
         }
-        
-:root {
-  --clr-primary: #81d4fa;
-  --clr-primary-light: #e1f5fe;
-  --clr-primary-dark: #4fc3f7;
-  --clr-gray100: #f9fbff;
-  --clr-gray150: #f4f6fb;
-  --clr-gray200: #eef1f6;
-  --clr-gray300: #e1e5ee;
-  --clr-gray400: #767b91;
-  --clr-gray500: #4f546c;
-  --clr-gray600: #2a324b;
-  --clr-gray700: #161d34;
-  --clr-pending: #fff0c2;
-  --clr-pending-font: #a68b00;
-  --clr-unpaid: #ffcdd2;
-  --clr-unpaid-font: #c62828;
-  --clr-paid: #c8e6c9;
-  --clr-paid-font: #388e3c;
-  --clr-link: #2962ff;
-  --radius: 0.2rem;
-}
 
 [role="tabpanel"] {
     font-family: 'Mukta', sans-serif;
+}
+
+.grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px; /* Assure un espace entre les éléments */
+    padding: 20px; /* Optionnel, ajoute un peu de padding autour */
+    box-sizing: border-box; /* Assure un bon dimensionnement */
+}
+
+.table-container {
+    overflow: auto;
+    padding: 10px;
+    border-radius: 8px;
+}
+
+.table-container table {
+    font-family: 'Mukta', sans-serif;
+    border-collapse: collapse;
+    width: 100%;
+    background-color: white;
+    text-align: left;
 }
 
 .table-container table {
@@ -641,9 +641,9 @@ font-family: 'Mukta', sans-serif;
         APPLY CSS ON GITHUB PROJECT
          */
 div[data-testid^="table-group-"]:not([data-testid^="table-group-footer-"]) {
-  box-shadow: 0 5px 10px var(--clr-gray300);
-  background-color: white;
-    margin: 2rem;
+    box-shadow: 0 5px 10px var(--clr-gray300);
+    background-color: white;
+    margin: 0.5rem;
     width: calc(100% - 4rem) !important;
 }
 
@@ -660,24 +660,22 @@ div[data-testid^="table-group"] div.gqOVRy:empty {
 }
 
 [data-testid^="table-group"] [role="rowgroup"] {
-  background-color: var(--clr-primary-light);
-  font-size: 0.7rem;
-  font-weight: 900;
-  text-transform: uppercase;
-  color: var(--clr-gray600);
+    background-color: var(--clr-primary-light);
+    font-size: 0.7rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    color: var(--clr-gray600);
 }
 
 [data-testid^="table-group"] [role="row"] {
-    padding: 10px 0;
     height: auto !important;
-}
-
-[data-testid^="table-group"] [role="row"] [role="gridcell"] {
-  border:none;
 }
 
 [data-testid^="table-group"] [role="row"] [role="gridcell"] .firrqR {
     font-size: 1rem;
+}
+[data-testid="table-scroll-container"] .jsdhON {
+    padding:0 2rem;
 }
 
 [data-testid^="table-group"] [role="row"]:not([data-testid^="table-group-footer-"]) {
@@ -713,17 +711,16 @@ div[data-testid^="table-group"] div.gqOVRy:empty {
   text-align: right;
 }
 
-[data-testid^="single-select-token"] {
+[data-testid^="table-group"] [data-testid^="single-select-token"] {
     border-radius: 0.2rem;
     width:100%;
     flex:1;
-    /* background-color: red; */
-    padding: 0.5rem 1rem;
+    padding: 0.25rem;
     height: auto;
     text-align: center;
     border: none;
 }
-div:has([data-testid^="single-select-token"]) {
+[data-testid^="table-group"] div:has([data-testid^="single-select-token"]) {
     width:100%;
     flex:1;
 }
@@ -749,8 +746,8 @@ stylesPopupPercent =  `
             bottom: 0;
             right: 0;
             margin: 1rem;
-            padding: 1rem;
-            width:250px;
+            padding: 1.5rem;
+            width:300px;
             position: absolute;
             cursor: pointer;
             transition: right 1s ease, opacity 1s ease;
@@ -828,7 +825,16 @@ stylesPopupPercent =  `
 `;
 document.head.insertAdjacentHTML('beforeend', stylesPopupPercent);
 
+let actualPercentage = 0;
+let hideTimeout = null;
 function updatePercentage(percentage) {
+    // Prevent useless treatment
+    if (percentage === actualPercentage) {
+        return;
+    }
+    actualPercentage = percentage;
+    clearTimeout(hideTimeout);
+
     const progressContainer = document.getElementById('progress-bar');
     progressContainer.style.width = percentage + '%';
     progressContainer.style.backgroundColor = calculateColor(percentage);
@@ -838,15 +844,23 @@ function updatePercentage(percentage) {
 
     const gptotsPopup = document.getElementById('gptots-popup');
     const buttonContainer = document.getElementById('buttonContainer');
+
+    console.log('Percentage');
+    console.log(percentage);
+
+    gptotsPopup.style.right = '0';
+    gptotsPopup.style.opacity = '1';
+    hideTimeout = setTimeout(() => {
+        gptotsPopup.style.right = '-150px';
+        gptotsPopup.style.opacity = '0';
+    }, 2000);
+
     if (percentage === 100) {
         gptotsPopup.style.right = '-150px';
         gptotsPopup.style.opacity = '0';
         buttonContainer.style.opacity = '1';
         buttonContainer.style.bottom = '0';
-        bottom
     } else {
-        gptotsPopup.style.right = '0';
-        gptotsPopup.style.opacity = '1';
         buttonContainer.style.opacity = '0';
         buttonContainer.style.bottom = '-200px';
     }
@@ -876,14 +890,6 @@ function mettreAJourTexteBouton() {
 
     updatePercentage(Math.round((nombreDeTicketsCaptures / nombreTotalDeTickets) * 100));
 }
-
-
-
-
-
-
-
-
 
 function getTotalTicketsFromDOM() {
     let totalTicketsElement = document.querySelector('span[data-testid="filter-results-count"]');
