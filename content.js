@@ -123,8 +123,6 @@ function capturerDonneesLigne(row) {
             assignations[title].assignees.push({ name: assigneeName, avatar: assigneeAvatar });
         }
     }
-
-    console.log(assignations);
 }
 
 function verifierTousLesLiens() {
@@ -367,7 +365,6 @@ function afficherResumesParColonnesDansModal() {
     for (let colonne in totauxParColonne) {
         // Créer l'en-tête avec les colonnes dynamiques pour chaque valeur numérique
         let colonnesNumeriques = Object.keys(totauxParColonne[colonne][Object.keys(totauxParColonne[colonne])[0]]);
-
         let tableauHTML = `
             <div class="table-container">
                 <!--<h4 class="table-title">${colonne}</h4>-->
@@ -414,10 +411,7 @@ function afficherResumesParColonnesDansModal() {
         gridContainer.innerHTML += tableauHTML;
     }
 
-    const link = document.createElement('link');
-    link.href = 'https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&family=Mukta:wght@300;400;600;700;800&family=Noto+Sans:wght@400;700&display=swap';
-    link.rel = 'stylesheet';
-    document.head.appendChild(link);
+    // link.href = 'https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&family=Mukta:wght@300;400;600;700;800&family=Noto+Sans:wght@400;700&display=swap';
     // Ajouter le conteneur de la grille dans la modal
     summaryContent.appendChild(gridContainer);
 
