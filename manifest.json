@@ -1,15 +1,14 @@
 {
   "manifest_version": 3,
-  "name": "GitHub Project Heures Calculator",
+  "name": "GitHub Project Enhancement",
   "version": "1.0",
-  "description": "Plugin avec option pour afficher le bouton Voir Résumé",
+  "description": "Enhance GitHub Projects with column and assignee totals.",
   "permissions": [
     "activeTab",
     "scripting",
     "storage"
   ],
   "action": {
-    "default_popup": "popup.html",
     "default_icon": {
       "16": "images/icon16.png",
       "48": "images/icon48.png",
@@ -18,14 +17,15 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://github.com/orgs/*/projects/*"],
-      "css": ["assets/css/style.css"],
+      "matches": [
+        "https://github.com/orgs/*/projects/*"
+      ],
+      "css": [
+        "style.css"
+      ],
       "js": [
         "content.js"
       ]
     }
-  ],
-  "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; style-src 'self' 'unsafe-inline';"
-  }
+  ]
 }
