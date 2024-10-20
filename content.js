@@ -7,7 +7,6 @@ function debounce(func, wait) {
 }
 
 function reloadPage() {
-    console.log('Reloading page ...');
     assignations = {};
     observerTableau();
 }
@@ -22,11 +21,8 @@ function observeTableScrollContainer() {
     const observerTable = new MutationObserver(function(mutationsList) {
         for (let mutation of mutationsList) {
             if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-                console.log('Table content changed');
                 mutation.addedNodes.forEach(node => {
-                    console.log(node);
                     if (node.nodeType === 1 && node.tagName === 'DIV' && node.getAttribute('role') === 'rowgroup') {
-                        console.log('New row added');
                         assignations = {};
                         debouncedReload();
                     }
@@ -41,6 +37,28 @@ window.addEventListener('load', function() {
     observeTableScrollContainer();
 });
 
+
+const navigationElement = document.querySelector('div[role="navigation"]');
+const buttonGroupElement = navigationElement.querySelector('[class^="ButtonGroup"]');
+const projectDetailsButton = buttonGroupElement.querySelector('[aria-label="Project details"]');
+
+const summariesButton = projectDetailsButton.cloneNode(true);
+summariesButton.setAttribute('aria-label', 'Assignee Totals');
+summariesButton.id = 'openSummaryModalBtn';
+summariesButton.innerText = `Summaries`;
+
+buttonGroupElement.appendChild(summariesButton);
+
+const assigneeTotalsButton = projectDetailsButton.cloneNode(true);
+assigneeTotalsButton.setAttribute('aria-label', 'Assignee Totals');
+assigneeTotalsButton.id = 'openModalBtn';
+assigneeTotalsButton.innerText = `Totals`;
+
+buttonGroupElement.appendChild(assigneeTotalsButton);
+
+
+
+
 let assignations = {};
 
 chrome.storage.sync.get(['voirResume', 'voirTotaux'], (result) => {
@@ -52,11 +70,6 @@ chrome.storage.sync.get(['voirResume', 'voirTotaux'], (result) => {
     }
 });
 
-/**
- * Fonction pour capturer les données d'une ligne
- * @param {HTMLElement} row L'élément de la ligne
- * @returns {void}
- * */
 function capturerDonneesLigne(row) {
 
     let titleElement = row.querySelector('[data-testid*="TableCell{row"][data-testid*=", column: Title"] a');
@@ -98,7 +111,7 @@ function capturerDonneesLigne(row) {
         if (match) {
             nomColonne = match[1];
             if (nomColonne !== 'Title' && nomColonne !== 'Assignees') {
-                let valeurElement = colonne.querySelector('.hWqAbU');
+                let valeurElement = colonne.querySelector('[class*="TokenTextContainer"]');
                 if (valeurElement) {
                     colonnesTextuelles[nomColonne] = valeurElement.textContent.trim();
                 }
@@ -160,15 +173,8 @@ let intervalId = setInterval(() => {
         clearInterval(intervalId);
         observerTableau();
     }
-}, 1000);
-
-let intervalId2 = setInterval(() => {
-    let tableau = document.querySelector('[data-testid="table-scroll-container"]');
-    if (tableau) {
-        verifierTousLesLiens();
-    }
     mettreAJourTexteBouton();
-}, 2000);
+}, 1000);
 
 function calculerTotauxParAssigne() {
     let totaux = {};
@@ -210,29 +216,16 @@ const modalHTML = `
             </div>
         </div>
     </div>
-    <!-- Bouton en position fixe -->
-    <div id="buttonContainer">
-        <button id="openModalBtn">Voir Totaux</button>
-        <button id="openSummaryModalBtn">Voir Résumés</button>
-    </div>
-
-    <!-- Modal pour afficher les totaux -->
     <div id="totauxModal" class="modal">
         <div class="modal-content">
-            <button class="close-btn" id="closeModalBtn">X</button>
-            <div id="modalContent">
-                <!-- Les totaux seront insérés ici -->
-            </div>
+            <button class="close-btn" id="closeModalBtn">-</button>
+            <div id="modalContent"></div>
         </div>
     </div>
-
-    <!-- Modal pour afficher les résumés -->
     <div id="summaryModal" class="modal">
         <div class="modal-content">
-            <button class="close-btn" id="closeSummaryModalBtn">X</button>
-            <div id="summaryContent">
-                <!-- Les résumés seront insérés ici -->
-            </div>
+            <button class="close-btn" id="closeSummaryModalBtn">-</button>
+            <div id="summaryContent"></div>
         </div>
     </div>
 `;
@@ -329,7 +322,7 @@ function fermerModal() {
 
 document.getElementById('openModalBtn').addEventListener('click', () => {
     document.getElementById('totauxModal').style.display = 'flex';  // Afficher la modal
-    afficherTotauxDansModal();  // Afficher les résultats dans la modal
+    afficherTotauxDansModal();
 });
 
 document.getElementById('closeModalBtn').addEventListener('click', fermerModal);
@@ -353,476 +346,41 @@ window.addEventListener('keydown', (event) => {
 function afficherResumesParColonnesDansModal() {
     let totauxParColonne = calculerTotauxParColonne();
     let summaryContent = document.getElementById('summaryContent');
-
-    // Réinitialiser le contenu
     summaryContent.innerHTML = '';
 
-    // Conteneur pour tous les tableaux avec mise en page en grille
     let gridContainer = document.createElement('div');
     gridContainer.className = 'grid-container';
 
-    // Parcourir chaque colonne textuelle pour créer un tableau
     for (let colonne in totauxParColonne) {
-        // Créer l'en-tête avec les colonnes dynamiques pour chaque valeur numérique
+        console.log(colonne);
         let colonnesNumeriques = Object.keys(totauxParColonne[colonne][Object.keys(totauxParColonne[colonne])[0]]);
-        let tableauHTML = `
-            <div class="table-container">
-                <!--<h4 class="table-title">${colonne}</h4>-->
-                <table class="styled-table">
-                    <thead>
-                        <tr>
-                            <th>${colonne}</th>
-        `;
-
-        // Ajouter les en-têtes des colonnes numériques (Hrs spent, Hrs estimated, etc.)
+        let tableauHTML = `<div class="table-container"><table class="styled-table"><thead><tr><th>${colonne}</th>`;
         colonnesNumeriques.forEach(colNum => {
             tableauHTML += `<th>${colNum}</th>`;
         });
 
-        tableauHTML += `
-                        </tr>
-                    </thead>
-                    <tbody>
-        `;
-
-        // Parcourir chaque valeur de cette colonne textuelle (ex: "Terminé", "Haute")
+        tableauHTML += `</tr></thead><tbody>`;
         for (let valeurColonne in totauxParColonne[colonne]) {
-            tableauHTML += `
-                <tr>
-                    <td>${valeurColonne}</td>
-            `;
-
-            // Ajouter les valeurs numériques dans leurs colonnes respectives
+            tableauHTML += `<tr><td>${valeurColonne}</td>`;
             colonnesNumeriques.forEach(colNum => {
                 tableauHTML += `<td>${totauxParColonne[colonne][valeurColonne][colNum] || 0}</td>`;
             });
-
             tableauHTML += `</tr>`;
         }
-
-        // Fermer le tableau
-        tableauHTML += `
-                    </tbody>
-                </table>
-            </div>
-        `;
-
-        // Ajouter chaque tableau dans le conteneur de la grille
+        tableauHTML += `</tbody></table></div>`;
         gridContainer.innerHTML += tableauHTML;
     }
 
-    // link.href = 'https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&family=Mukta:wght@300;400;600;700;800&family=Noto+Sans:wght@400;700&display=swap';
-    // Ajouter le conteneur de la grille dans la modal
     summaryContent.appendChild(gridContainer);
 
-    // Si aucun total n'est trouvé, afficher un message
     if (Object.keys(totauxParColonne).length === 0) {
         summaryContent.innerHTML = '<p>Aucune donnée trouvée.</p>';
     }
 }
 
-const styles = `
-<style>
-    #buttonContainer {
-        opacity:0;
-        position: fixed;
-        transition: bottom 1s ease, opacity 1s ease;
-        bottom: -200px;;
-        width: 100%;
-        display: flex;
-        justify-content: space-between;
-        padding: 10px;
-        background-color: #fff; /* ou n'importe quelle couleur de fond souhaitée */
-        z-index: 1000;
-    }
-    
-    #openModalBtn, #openSummaryModalBtn {
-        flex: 1;
-        margin: 0 5px; /* Ajoute de l'espace entre les boutons */
-        padding: 10px;
-        background-color: #007bff;
-        color: white;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-        text-align: center;
-    }
-
-        /* Bouton pour fermer la modal */
-        .close-btn {
-            background-color: red;
-            color: white;
-            padding: 5px 10px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            float: right;
-        }
-                        
-        :root {
-            --clr-primary: #81d4fa;
-            --clr-primary-light: #e1f5fe;
-            --clr-primary-dark: #4fc3f7;
-            --clr-gray100: #f9fbff;
-            --clr-gray150: #f4f6fb;
-            --clr-gray200: #eef1f6;
-            --clr-gray300: #e1e5ee;
-            --clr-gray400: #767b91;
-            --clr-gray500: #4f546c;
-            --clr-gray600: #2a324b;
-            --clr-gray700: #161d34;
-            --clr-pending: #fff0c2;
-            --clr-pending-font: #a68b00;
-            --clr-unpaid: #ffcdd2;
-            --clr-unpaid-font: #c62828;
-            --clr-paid: #c8e6c9;
-            --clr-paid-font: #388e3c;
-            --clr-link: #2962ff;
-            --radius: 0.2rem;
-        }
-
-[role="tabpanel"] {
-    font-family: 'Mukta', sans-serif;
-}
-
-.grid-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 20px; /* Assure un espace entre les éléments */
-    padding: 20px; /* Optionnel, ajoute un peu de padding autour */
-    box-sizing: border-box; /* Assure un bon dimensionnement */
-}
-
-.table-container {
-    overflow: auto;
-    padding: 10px;
-    border-radius: 8px;
-}
-
-.table-container table {
-    font-family: 'Mukta', sans-serif;
-    border-collapse: collapse;
-    width: 100%;
-    background-color: white;
-    text-align: left;
-}
-
-.table-container table {
-font-family: 'Mukta', sans-serif;
-  border-collapse: collapse;
-  box-shadow: 0 5px 10px var(--clr-gray600);
-  background-color: white;
-  text-align: left;
-  overflow: hidden;
-  width: 100%;
-  max-width: 800px;
-}
-
-.table-container thead {
-  box-shadow: 0 5px 10px var(--clr-gray300);
-}
-
-.table-container th {
-  padding: 1rem 2rem;
-  text-transform: uppercase;
-  letter-spacing: 0.1rem;
-  font-size: 0.7rem;
-  font-weight: 900;
-  background-color: var(--clr-gray200);
-  color: var(--clr-gray600);
-}
-
-.table-container td {
-  padding: 1rem 2rem;
-}
-
-.table-container a {
-  text-decoration: none;
-  color: var(--clr-link);
-}
-
-.table-container .status {
-  border-radius: var(--radius);
-  padding: 0.2rem 1rem;
-  text-align: center;
-}
-
-.table-container .status-pending {
-  background-color: var(--clr-pending);
-  color: var(--clr-pending-font);
-}
-
-.table-container .status-paid {
-  background-color: var(--clr-paid);
-  color: var(--clr-paid-font);
-}
-
-.table-container .status-unpaid {
-  background-color: var(--clr-unpaid);
-  color: var(--clr-unpaid-font);
-}
-
-.table-container .amount {
-  text-align: right;
-}
-
-/* Alternating row colors */
-.table-container tbody tr:nth-child(even) {
-  background-color: var(--clr-gray200);
-}
-
-.table-container tbody tr:nth-child(odd) {
-  background-color: var(--clr-gray100);
-}
-
-/* Hover effect */
-.table-container tbody tr:hover {
-  background-color: var(--clr-gray300);
-}
-     
-        /* Styles pour la modal qui prend tout l'écran */
-        .modal {
-            display:none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background-color: rgba(0, 0, 0, 0.5); /* Fond de la modal */
-            justify-content: center;
-            align-items: center;
-            z-index: 1000; /* Assure que la modal est au-dessus */
-        }
-        
-        /* Contenu de la modal */
-        .modal-content {
-            width: 90vw;
-            height: 90vh;
-            border-radius: 10px;
-            padding: 20px;
-            overflow-y: auto; /* Scroll si le contenu dépasse en hauteur */
-            overflow-x: hidden; /* Pas de scroll horizontal */
-        }
-        
-        .modal.fade-in {
-            animation: fadeIn 0.3s ease;
-        }
-        
-        /* Animation fade-in */
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-            to {
-                opacity: 1;
-            }
-        }
-        
-        /* Styles pour le backdrop */
-        .modal-backdrop {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 999; /* Juste en dessous de la modal */
-        }
-        
-        
-        
-        /** 
-        APPLY CSS ON GITHUB PROJECT
-         */
-div[data-testid^="table-group-"]:not([data-testid^="table-group-footer-"]) {
-    box-shadow: 0 5px 10px var(--clr-gray300);
-    background-color: white;
-    margin: 0.5rem;
-    width: calc(100% - 4rem) !important;
-}
-
-[data-testid^="table-group-footer-"]) {
-    background:grey !important;
-}
-
-div[data-testid="omnibar"]){
-    background: lightgray !important;
-}
-
-div[data-testid^="table-group"] div.gqOVRy:empty {
-    display:none;
-}
-
-[data-testid^="table-group"] [role="rowgroup"] {
-    background-color: var(--clr-primary-light);
-    font-size: 0.7rem;
-    font-weight: 900;
-    text-transform: uppercase;
-    color: var(--clr-gray600);
-}
-
-[data-testid^="table-group"] [role="row"] {
-    height: auto !important;
-}
-
-[data-testid^="table-group"] [role="row"] [role="gridcell"] .firrqR {
-    font-size: 1rem;
-}
-[data-testid="table-scroll-container"] .jsdhON {
-    padding:0 2rem;
-}
-
-[data-testid^="table-group"] [role="row"]:not([data-testid^="table-group-footer-"]) {
-  background-color: white !important;
-}
-
-[data-testid^="table-group"] [role="row"]:hover {
-  background-color: var(--clr-gray200) !important;
-}
-
-[data-testid^="table-group"] .status {
-  border-radius: var(--radius);
-  /*padding: 0.2rem 1rem;*/
-  text-align: center;
-}
-
-[data-testid^="table-group"] .status-pending {
-  background-color: var(--clr-pending);
-  color: var(--clr-pending-font);
-}
-
-[data-testid^="table-group"] .status-paid {
-  background-color: var(--clr-paid);
-  color: var(--clr-paid-font);
-}
-
-[data-testid^="table-group"] .status-unpaid {
-  background-color: var(--clr-unpaid);
-  color: var(--clr-unpaid-font);
-}
-
-[data-testid^="table-group"] .amount {
-  text-align: right;
-}
-
-[data-testid^="table-group"] [data-testid^="single-select-token"] {
-    border-radius: 0.2rem;
-    width:100%;
-    flex:1;
-    padding: 0.25rem;
-    height: auto;
-    text-align: center;
-    border: none;
-}
-[data-testid^="table-group"] div:has([data-testid^="single-select-token"]) {
-    width:100%;
-    flex:1;
-}
-
-[data-testid^="group-name"] {
-      padding: 1rem 2rem;
-      text-transform: uppercase;
-      letter-spacing: 0.1rem;
-      font-size: 0.7rem;
-      font-weight: 900;
-      color: var(--clr-gray600);
-}
-    
-    
-    </style>
-`;
-document.head.insertAdjacentHTML('beforeend', styles);
-
-stylesPopupPercent =  `
-    <style>
-        .gptots-popup {
-            display: flex;
-            bottom: 0;
-            right: 0;
-            margin: 1rem;
-            padding: 1.5rem;
-            width:300px;
-            position: absolute;
-            cursor: pointer;
-            transition: right 1s ease, opacity 1s ease;
-        }
-        
-        #progress-container {
-        display: flex;
-        align-items: center;
-        background-color: #f0f0f0; /* Fond plus clair pour améliorer la visibilité du texte */
-        transition: width 0.3s ease, background-color 0.3s ease;
-        border-radius: 8px;
-        max-width: 300px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        position: relative;
-        overflow: hidden;
-        width:100%
-    }
-
-        #progress-bar {
-        position: absolute;
-        width: 100%;
-        height: 100%; /* Prendre toute la hauteur du conteneur */
-        z-index: 0; /* Assurer que la progress-bar est derrière les autres éléments */
-    }
-
-        #progress-text {
-        display: flex;
-        width: 100%;
-        justify-content: space-between;
-        align-items: center;
-        z-index: 1; /* Priorité visuelle pour être devant la progress-bar */
-        position: relative;
-    }
-
-        .left-section {
-        display: flex;
-        align-items: center;
-        padding: 10px;
-    }
-
-        .text-container {
-        display: flex;
-        flex-direction: column;
-    }
-
-        .text-container h4 {
-        margin: 0;
-        font-size: 16px; /* Taille adaptée à celle de "99%" */
-        color: #666; /* Couleur identique à "99%" */
-        font-weight: bold;
-    }
-
-        .text-container p {
-        margin: 0;
-        font-size: 12px; /* Même taille que "raised" */
-        color: #666; /* Couleur identique à "raised" */
-    }
-
-        .right-section {
-        flex-grow: 1;
-        padding: 10px;
-        font-size: 16px;
-        font-weight: bold;
-        text-align: right;
-        color: #666;
-        z-index: 1;
-        position: relative;
-    }
-
-        .right-section span {
-        display: block;
-        font-size: 12px;
-    }
-    </style>
-`;
-document.head.insertAdjacentHTML('beforeend', stylesPopupPercent);
-
 let actualPercentage = 0;
 let hideTimeout = null;
 function updatePercentage(percentage) {
-    // Prevent useless treatment
     if (percentage === actualPercentage) {
         return;
     }
@@ -837,10 +395,6 @@ function updatePercentage(percentage) {
     rightSection.innerHTML = percentage + '%<br><span>analysed</span>';
 
     const gptotsPopup = document.getElementById('gptots-popup');
-    const buttonContainer = document.getElementById('buttonContainer');
-
-    console.log('Percentage');
-    console.log(percentage);
 
     gptotsPopup.style.right = '0';
     gptotsPopup.style.opacity = '1';
@@ -852,11 +406,11 @@ function updatePercentage(percentage) {
     if (percentage === 100) {
         gptotsPopup.style.right = '-150px';
         gptotsPopup.style.opacity = '0';
-        buttonContainer.style.opacity = '1';
-        buttonContainer.style.bottom = '0';
+        summariesButton.style.display = 'flex';
+        assigneeTotalsButton.style.display = 'flex';
     } else {
-        buttonContainer.style.opacity = '0';
-        buttonContainer.style.bottom = '-200px';
+        summariesButton.style.display = 'none';
+        assigneeTotalsButton.style.display = 'none';
     }
 }
 
@@ -876,11 +430,15 @@ function mettreAJourTexteBouton() {
     let nombreDeTicketsCaptures = Object.keys(assignations).length;
     let nombreTotalDeTickets = getTotalTicketsFromDOM();
     let bouton = document.getElementById('openModalBtn');
-    bouton.innerText = `Voir Totaux (${nombreDeTicketsCaptures}/${nombreTotalDeTickets})`;
+
+    if (nombreDeTicketsCaptures !== nombreTotalDeTickets) {
+        bouton.innerText = `Totals - ${nombreDeTicketsCaptures}/${nombreTotalDeTickets}`;
+    } else {
+        bouton.innerText = `Totals`;
+    }
+
     let gptotsModal = document.getElementById('progress-count');
     gptotsModal.innerText = `${nombreDeTicketsCaptures} / ${nombreTotalDeTickets}`;
-
-
 
     updatePercentage(Math.round((nombreDeTicketsCaptures / nombreTotalDeTickets) * 100));
 }
@@ -898,6 +456,7 @@ function calculerTotauxParColonne() {
     for (let titre in assignations) {
         let tache = assignations[titre];
         let colonnesTextuelles = tache.colonnesTextuelles;
+        console.log(colonnesTextuelles);
         for (let colonne in colonnesTextuelles) {
             let valeurColonne = colonnesTextuelles[colonne];
             if (!totauxParColonne[colonne]) {

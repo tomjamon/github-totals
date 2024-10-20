@@ -1,59 +1,15 @@
-#buttonContainer {
-    opacity: 0;
-    position: fixed;
-    transition: bottom 1s ease, opacity 1s ease;
-    bottom: -200px;;
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
-    padding: 10px;
-    background-color: #fff; /* ou n'importe quelle couleur de fond souhaitée */
-    z-index: 1000;
-}
-
 #openModalBtn, #openSummaryModalBtn {
-    flex: 1;
-    margin: 0 5px; /* Ajoute de l'espace entre les boutons */
-    padding: 10px;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    text-align: center;
+    display:none;
 }
 
-/* Bouton pour fermer la modal */
 .close-btn {
     background-color: red;
     color: white;
     padding: 5px 10px;
     border: none;
-    border-radius: 5px;
+    border-radius: 100px;
     cursor: pointer;
     float: right;
-}
-
-:root {
-    --clr-primary: #81d4fa;
-    --clr-primary-light: #e1f5fe;
-    --clr-primary-dark: #4fc3f7;
-    --clr-gray100: #f9fbff;
-    --clr-gray150: #f4f6fb;
-    --clr-gray200: #eef1f6;
-    --clr-gray300: #e1e5ee;
-    --clr-gray400: #767b91;
-    --clr-gray500: #4f546c;
-    --clr-gray600: #2a324b;
-    --clr-gray700: #161d34;
-    --clr-pending: #fff0c2;
-    --clr-pending-font: #a68b00;
-    --clr-unpaid: #ffcdd2;
-    --clr-unpaid-font: #c62828;
-    --clr-paid: #c8e6c9;
-    --clr-paid-font: #388e3c;
-    --clr-link: #2962ff;
-    --radius: 0.2rem;
 }
 
 [role="tabpanel"] {
@@ -63,9 +19,9 @@
 .grid-container {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 20px; /* Assure un espace entre les éléments */
-    padding: 20px; /* Optionnel, ajoute un peu de padding autour */
-    box-sizing: border-box; /* Assure un bon dimensionnement */
+    gap: 20px;
+    padding: 20px;
+    box-sizing: border-box;
 }
 
 .table-container {
@@ -85,7 +41,7 @@
 .table-container table {
     font-family: 'Mukta', sans-serif;
     border-collapse: collapse;
-    box-shadow: 0 5px 10px var(--clr-gray600);
+    box-shadow: 0 5px 10px #2a324b;
     background-color: white;
     text-align: left;
     overflow: hidden;
@@ -94,7 +50,7 @@
 }
 
 .table-container thead {
-    box-shadow: 0 5px 10px var(--clr-gray300);
+    box-shadow: 0 5px 10px #e1e5ee;
 }
 
 .table-container th {
@@ -103,8 +59,8 @@
     letter-spacing: 0.1rem;
     font-size: 0.7rem;
     font-weight: 900;
-    background-color: var(--clr-gray200);
-    color: var(--clr-gray600);
+    background-color: #eef1f6;
+    color: #2a324b;
 }
 
 .table-container td {
@@ -113,49 +69,21 @@
 
 .table-container a {
     text-decoration: none;
-    color: var(--clr-link);
+    color: #2962ff;
 }
 
-.table-container .status {
-    border-radius: var(--radius);
-    padding: 0.2rem 1rem;
-    text-align: center;
-}
-
-.table-container .status-pending {
-    background-color: var(--clr-pending);
-    color: var(--clr-pending-font);
-}
-
-.table-container .status-paid {
-    background-color: var(--clr-paid);
-    color: var(--clr-paid-font);
-}
-
-.table-container .status-unpaid {
-    background-color: var(--clr-unpaid);
-    color: var(--clr-unpaid-font);
-}
-
-.table-container .amount {
-    text-align: right;
-}
-
-/* Alternating row colors */
 .table-container tbody tr:nth-child(even) {
-    background-color: var(--clr-gray200);
+    background-color: #eef1f6;
 }
 
 .table-container tbody tr:nth-child(odd) {
-    background-color: var(--clr-gray100);
+    background-color: #f9fbff;
 }
 
-/* Hover effect */
 .table-container tbody tr:hover {
-    background-color: var(--clr-gray300);
+    background-color: #e1e5ee;
 }
 
-/* Styles pour la modal qui prend tout l'écran */
 .modal {
     display: none;
     position: fixed;
@@ -163,27 +91,25 @@
     left: 0;
     width: 100vw;
     height: 100vh;
-    background-color: rgba(0, 0, 0, 0.5); /* Fond de la modal */
+    background-color: rgba(0, 0, 0, 0.5);
     justify-content: center;
     align-items: center;
-    z-index: 1000; /* Assure que la modal est au-dessus */
+    z-index: 1000;
 }
 
-/* Contenu de la modal */
 .modal-content {
     width: 90vw;
     height: 90vh;
     border-radius: 10px;
     padding: 20px;
-    overflow-y: auto; /* Scroll si le contenu dépasse en hauteur */
-    overflow-x: hidden; /* Pas de scroll horizontal */
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .modal.fade-in {
     animation: fadeIn 0.3s ease;
 }
 
-/* Animation fade-in */
 @keyframes fadeIn {
     from {
         opacity: 0;
@@ -193,7 +119,6 @@
     }
 }
 
-/* Styles pour le backdrop */
 .modal-backdrop {
     position: fixed;
     top: 0;
@@ -201,84 +126,9 @@
     width: 100vw;
     height: 100vh;
     background: rgba(0, 0, 0, 0.5);
-    z-index: 999; /* Juste en dessous de la modal */
+    z-index: 999;
 }
 
-
-/**
-APPLY CSS ON GITHUB PROJECT
- */
-div[data-testid^="table-group-"]:not([data-testid^="table-group-footer-"]) {
-    box-shadow: 0 5px 10px var(--clr-gray300);
-    background-color: white;
-    margin: 0.5rem;
-    width: calc(100% - 4rem) !important;
-}
-
-[data-testid^="table-group-footer-"] {
-    /*background: grey !important;*/
-}
-
-div[data-testid="omnibar"] {
-    /*background: lightgray !important;*/
-}
-
-div[data-testid^="table-group"] div.gqOVRy:empty {
-    display: none;
-}
-
-[data-testid^="table-group"] [role="rowgroup"] {
-    background-color: var(--clr-primary-light);
-    font-size: 0.7rem;
-    font-weight: 900;
-    text-transform: uppercase;
-    color: var(--clr-gray600);
-}
-
-[data-testid^="table-group"] [role="row"] {
-    height: auto !important;
-}
-
-[data-testid^="table-group"] [role="row"] [role="gridcell"] .firrqR {
-    font-size: 1rem;
-}
-
-[data-testid="table-scroll-container"] .jsdhON {
-    padding: 0 2rem;
-}
-
-[data-testid^="table-group"] [role="row"]:not([data-testid^="table-group-footer-"]) {
-    background-color: white !important;
-}
-
-[data-testid^="table-group"] [role="row"]:hover {
-    background-color: var(--clr-gray200) !important;
-}
-
-[data-testid^="table-group"] .status {
-    border-radius: var(--radius);
-    /*padding: 0.2rem 1rem;*/
-    text-align: center;
-}
-
-[data-testid^="table-group"] .status-pending {
-    background-color: var(--clr-pending);
-    color: var(--clr-pending-font);
-}
-
-[data-testid^="table-group"] .status-paid {
-    background-color: var(--clr-paid);
-    color: var(--clr-paid-font);
-}
-
-[data-testid^="table-group"] .status-unpaid {
-    background-color: var(--clr-unpaid);
-    color: var(--clr-unpaid-font);
-}
-
-[data-testid^="table-group"] .amount {
-    text-align: right;
-}
 
 [data-testid^="table-group"] [data-testid^="single-select-token"] {
     border-radius: 0.2rem;
@@ -293,15 +143,6 @@ div[data-testid^="table-group"] div.gqOVRy:empty {
 [data-testid^="table-group"] div:has([data-testid^="single-select-token"]) {
     width: 100%;
     flex: 1;
-}
-
-[data-testid^="group-name"] {
-    padding: 1rem 2rem;
-    text-transform: uppercase;
-    letter-spacing: 0.1rem;
-    font-size: 0.7rem;
-    font-weight: 900;
-    color: var(--clr-gray600);
 }
 
 .gptots-popup {
