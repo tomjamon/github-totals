@@ -7,8 +7,8 @@ function debounce(func, wait) {
 }
 
 function reloadPage() {
-    assignations = {};
-    observerTableau();
+    assignments = {};
+    observeTable();
 }
 
 const debouncedReload = debounce(reloadPage, 1000);
@@ -23,55 +23,45 @@ function observeTableScrollContainer() {
             if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
                 mutation.addedNodes.forEach(node => {
                     if (node.nodeType === 1 && node.tagName === 'DIV' && node.getAttribute('role') === 'rowgroup') {
-                        assignations = {};
+                        assignments = {};
                         debouncedReload();
                     }
                 });
             }
         }
     });
-    observerTable.observe(targetNode,  { childList: true, subtree: true });
+    observerTable.observe(targetNode, { childList: true, subtree: true });
 }
 
 window.addEventListener('load', function() {
     observeTableScrollContainer();
 });
 
+let summariesButton, assigneeTotalsButton;
+function addButtons() {
+    const navigationElement = document.querySelector('div[role="navigation"]');
+    const buttonGroupElement = navigationElement.querySelector('[class^="ButtonGroup"]');
+    const projectDetailsButton = buttonGroupElement.querySelector('[aria-label="Project details"]');
 
-const navigationElement = document.querySelector('div[role="navigation"]');
-const buttonGroupElement = navigationElement.querySelector('[class^="ButtonGroup"]');
-const projectDetailsButton = buttonGroupElement.querySelector('[aria-label="Project details"]');
+    summariesButton = projectDetailsButton.cloneNode(true);
+    summariesButton.setAttribute('aria-label', 'Summaries');
+    summariesButton.id = 'openSummaryModalBtn';
+    summariesButton.innerText = `Summaries`;
 
-const summariesButton = projectDetailsButton.cloneNode(true);
-summariesButton.setAttribute('aria-label', 'Assignee Totals');
-summariesButton.id = 'openSummaryModalBtn';
-summariesButton.innerText = `Summaries`;
+    buttonGroupElement.appendChild(summariesButton);
 
-buttonGroupElement.appendChild(summariesButton);
+    assigneeTotalsButton = projectDetailsButton.cloneNode(true);
+    assigneeTotalsButton.setAttribute('aria-label', 'Assignee Totals');
+    assigneeTotalsButton.id = 'openModalBtn';
+    assigneeTotalsButton.innerText = `Totals`;
 
-const assigneeTotalsButton = projectDetailsButton.cloneNode(true);
-assigneeTotalsButton.setAttribute('aria-label', 'Assignee Totals');
-assigneeTotalsButton.id = 'openModalBtn';
-assigneeTotalsButton.innerText = `Totals`;
+    buttonGroupElement.appendChild(assigneeTotalsButton);
+}
+addButtons();
 
-buttonGroupElement.appendChild(assigneeTotalsButton);
+let assignments = {};
 
-
-
-
-let assignations = {};
-
-chrome.storage.sync.get(['voirResume', 'voirTotaux'], (result) => {
-    if (result.voirResume === 'no') {
-        document.getElementById('openModalBtn').style.display = 'none';
-    }
-    if (result.voirTotaux === 'no') {
-        document.getElementById('openSummaryModalBtn').style.display = 'none';
-    }
-});
-
-function capturerDonneesLigne(row) {
-
+function captureRowData(row) {
     let titleElement = row.querySelector('[data-testid*="TableCell{row"][data-testid*=", column: Title"] a');
     let title = titleElement ? titleElement.textContent.trim() : null;
     if (!title) {
@@ -79,124 +69,118 @@ function capturerDonneesLigne(row) {
         title = titleElement ? titleElement.textContent.trim() : null;
     }
 
-    let colonnesNumeriques = row.querySelectorAll('[data-testid^="TableCell{row"][role="gridcell"]');
-    let sommesParColonne = {};
+    let numericColumns = row.querySelectorAll('[data-testid^="TableCell{row"][role="gridcell"]');
+    let columnSums = {};
 
-    // Sum per column
-    colonnesNumeriques.forEach(colonne => {
-        let nomColonne = colonne.getAttribute('data-testid');
-        let match = nomColonne.match(/column: ([^}]*)/);
+    numericColumns.forEach(col => {
+        let colName = col.getAttribute('data-testid');
+        let match = colName.match(/column: ([^}]*)/);
         if (match) {
-            nomColonne = match[1];
+            colName = match[1];
         }
-        let valeurElement = colonne.querySelector('.firrqR span');
-        if (valeurElement) {
-            let valeur = parseFloat(valeurElement.textContent.trim());
-            if (!isNaN(valeur)) {
-                if (!sommesParColonne[nomColonne]) {
-                    sommesParColonne[nomColonne] = 0;
+        let valueElement = col.querySelector('.firrqR span');
+        if (valueElement) {
+            let value = parseFloat(valueElement.textContent.trim());
+            if (!isNaN(value)) {
+                if (!columnSums[colName]) {
+                    columnSums[colName] = 0;
                 }
-                sommesParColonne[nomColonne] += valeur;
+                columnSums[colName] += value;
             }
         }
     });
 
-    // List of Columns
-    let colonnesTextuelles = {};
-    let textColumns = row.querySelectorAll('[role="gridcell"]');
-    textColumns.forEach(colonne => {
-        let nomColonne = colonne.getAttribute('data-testid');
-        if (!nomColonne) return;
-        let match = nomColonne.match(/column: ([^}]*)/);
+    let textColumns = {};
+    let allColumns = row.querySelectorAll('[role="gridcell"]');
+    allColumns.forEach(col => {
+        let colName = col.getAttribute('data-testid');
+        if (!colName) return;
+        let match = colName.match(/column: ([^}]*)/);
         if (match) {
-            nomColonne = match[1];
-            if (nomColonne !== 'Title' && nomColonne !== 'Assignees') {
-                let valeurElement = colonne.querySelector('[class*="TokenTextContainer"]');
-                if (valeurElement) {
-                    colonnesTextuelles[nomColonne] = valeurElement.textContent.trim();
+            colName = match[1];
+            if (colName !== 'Title' && colName !== 'Assignees') {
+                let valueElement = col.querySelector('[class*="TokenTextContainer"]');
+                if (valueElement) {
+                    textColumns[colName] = valueElement.textContent.trim();
                 }
             }
         }
     });
 
-    // Line with title in key, and sum per column and assignees in value
     if (title) {
-        if (!assignations[title]) {
-            assignations[title] = {
-                sommesColonnes: {},
+        if (!assignments[title]) {
+            assignments[title] = {
+                columnSums: {},
                 assignees: [],
-                colonnesTextuelles: colonnesTextuelles
+                textColumns: textColumns
             };
         }
-        assignations[title].sommesColonnes = sommesParColonne;
+        assignments[title].columnSums = columnSums;
         let assigneeElement = row.querySelector('[data-testid*="TableCell{row"][data-testid*=", column: Assignees"] img');
         let assigneeName = assigneeElement ? assigneeElement.alt : null;
         let assigneeAvatar = assigneeElement ? assigneeElement.src : null;
-        if (assigneeName && !assignations[title].assignees.some(a => a.name === assigneeName)) {
-            assignations[title].assignees.push({ name: assigneeName, avatar: assigneeAvatar });
+        if (assigneeName && !assignments[title].assignees.some(a => a.name === assigneeName)) {
+            assignments[title].assignees.push({ name: assigneeName, avatar: assigneeAvatar });
         }
     }
 }
 
-function verifierTousLesLiens() {
-    let lignesExistantes = document.querySelectorAll('[role="row"]');
-    lignesExistantes.forEach(ligne => {
-        capturerDonneesLigne(ligne);
+function checkAllRows() {
+    let existingRows = document.querySelectorAll('[role="row"]');
+    existingRows.forEach(row => {
+        captureRowData(row);
     });
 }
 
 let observer;
 
-function observerTableau() {
-    let tableau = document.querySelector('[data-testid="table-scroll-container"]');
-    if (tableau) {
-        verifierTousLesLiens();
+function observeTable() {
+    let table = document.querySelector('[data-testid="table-scroll-container"]');
+    if (table) {
+        checkAllRows();
         observer = new MutationObserver((mutations) => {
             mutations.forEach((mutation) => {
                 mutation.addedNodes.forEach((node) => {
-                    // Vérifier si le noeud ajouté est une ligne avec role="row"
                     if (node.nodeType === 1 && node.matches('[role="row"]')) {
-                        // Capturer les données de la ligne ajoutée
-                        capturerDonneesLigne(node);
+                        captureRowData(node);
                     }
                 });
             });
         });
-
-        observer.observe(tableau, { childList: true, subtree: true });
+        observer.observe(table, { childList: true, subtree: true });
     }
 }
 
 let intervalId = setInterval(() => {
-    let tableau = document.querySelector('[data-testid="table-scroll-container"]');
-    if (tableau) {
+    let table = document.querySelector('[data-testid="table-scroll-container"]');
+    if (table) {
         clearInterval(intervalId);
-        observerTableau();
+        observeTable();
     }
-    mettreAJourTexteBouton();
+    updateButtonText();
 }, 1000);
 
-function calculerTotauxParAssigne() {
-    let totaux = {};
-    for (let titre in assignations) {
-        let tache = assignations[titre];
-        tache.assignees.forEach(assignee => {
-            if (!totaux[assignee.name]) {
-                totaux[assignee.name] = {
+function calculateTotalsByAssignee() {
+    let totals = {};
+    for (let title in assignments) {
+        let task = assignments[title];
+        task.assignees.forEach(assignee => {
+            if (!totals[assignee.name]) {
+                totals[assignee.name] = {
                     avatar: assignee.avatar,
-                    colonnes: {}
+                    columns: {}
                 };
             }
-            for (let colonne in tache.sommesColonnes) {
-                if (!totaux[assignee.name].colonnes[colonne]) {
-                    totaux[assignee.name].colonnes[colonne] = 0;
+            for (let column in task.columnSums) {
+                if (!totals[assignee.name].columns[column]) {
+                    totals[assignee.name].columns[column] = 0;
                 }
-                totaux[assignee.name].colonnes[colonne] += tache.sommesColonnes[colonne];
+                totals[assignee.name].columns[column] += task.columnSums[column];
             }
         });
     }
 
-    return totaux;
+    return totals;
 }
 
 const modalHTML = `
@@ -231,155 +215,150 @@ const modalHTML = `
 `;
 document.body.insertAdjacentHTML('beforeend', modalHTML);
 
-function calculerTotauxParStatut() {
-    let totauxParStatut = {};
-
-    // Parcourir toutes les lignes capturées
-    for (let titre in assignations) {
-        let tache = assignations[titre];
-        let statut = tache.statut;  // Assumons que nous avons stocké le statut de chaque ligne lors de la capture
-
-        if (!statut) continue; // Si le statut n'est pas défini, on ignore cette ligne
-
-        // Initialiser le statut dans les totaux s'il n'existe pas encore
-        if (!totauxParStatut[statut]) {
-            totauxParStatut[statut] = {};
-        }
-
-        // Ajouter les sommes pour chaque colonne (par exemple "Hrs spent")
-        for (let colonne in tache.sommesColonnes) {
-            if (!totauxParStatut[statut][colonne]) {
-                totauxParStatut[statut][colonne] = 0;
-            }
-            totauxParStatut[statut][colonne] += tache.sommesColonnes[colonne];
-        }
-    }
-
-    return totauxParStatut;
-}
-
-function afficherTotauxDansModal() {
-    let totaux = calculerTotauxParAssigne();
+function displayTotalsInModal() {
+    let totals = calculateTotalsByAssignee();
     let modalContent = document.getElementById('modalContent');
-    let colonnes = new Set();
-    for (let assignee in totaux) {
-        for (let colonne in totaux[assignee].colonnes) {
-            colonnes.add(colonne);
+    let columns = new Set();
+    for (let assignee in totals) {
+        for (let column in totals[assignee].columns) {
+            columns.add(column);
         }
     }
-    let tableauHTML = `
+    let tableHTML = `
 <div class="table-container">
     <table class="styled-table">
         <thead>
             <tr>
-                <th>Assignes</th>
+                <th>Assignees</th>
     `;
 
-    colonnes.forEach(colonne => {
-        tableauHTML += `<th style="padding: 8px;">${colonne}</th>`;
+    columns.forEach(column => {
+        tableHTML += `<th style="padding: 8px;">${column}</th>`;
     });
 
-    tableauHTML += `
+    tableHTML += `
                 </tr>
             </thead>
             <tbody>
     `;
 
-    for (let assignee in totaux) {
-        let assigneeData = totaux[assignee];
+    for (let assignee in totals) {
+        let assigneeData = totals[assignee];
 
-        tableauHTML += `<tr>
+        tableHTML += `<tr>
             <td style="padding: 8px; border-bottom: 1px solid #ddd;">
                 <img src="${assigneeData.avatar}" alt="${assignee}" style="width: 20px; height: 20px; border-radius: 50%; vertical-align: middle; margin-right: 8px;">
                 ${assignee}
             </td>`;
 
-        colonnes.forEach(colonne => {
-            let valeur = assigneeData.colonnes[colonne] || 0;
-            tableauHTML += `<td style="padding: 8px; border-bottom: 1px solid #ddd;">${valeur}</td>`;
+        columns.forEach(column => {
+            let value = assigneeData.columns[column] || 0;
+            tableHTML += `<td style="padding: 8px; border-bottom: 1px solid #ddd;">${value}</td>`;
         });
 
-        tableauHTML += `</tr>`;
+        tableHTML += `</tr>`;
     }
 
-    tableauHTML += `
+    tableHTML += `
             </tr>
                     </thead>
                     <tbody>
     `;
 
-    if (Object.keys(totaux).length === 0) {
-        tableauHTML = '<p>Aucun assigné trouvé.</p>';
+    if (Object.keys(totals).length === 0) {
+        tableHTML = '<p>No assignees found.</p>';
     }
 
-    modalContent.innerHTML = tableauHTML;
-    mettreAJourTexteBouton();
+    modalContent.innerHTML = tableHTML;
+    updateButtonText();
 }
 
-function fermerModal() {
+function closeModal() {
     document.getElementById('totauxModal').style.display = 'none';
 }
 
 document.getElementById('openModalBtn').addEventListener('click', () => {
-    document.getElementById('totauxModal').style.display = 'flex';  // Afficher la modal
-    afficherTotauxDansModal();
+    document.getElementById('totauxModal').style.display = 'flex';
+    displayTotalsInModal();
 });
 
-document.getElementById('closeModalBtn').addEventListener('click', fermerModal);
+document.getElementById('closeModalBtn').addEventListener('click', closeModal);
 
 window.addEventListener('click', (event) => {
     let modal = document.getElementById('totauxModal');
     if (event.target === modal) {
-        fermerModal();
+        closeModal();
     }
 });
 
 window.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') {  // Vérifier si la touche est 'ESC'
+    if (event.key === 'Escape') {
         let modal = document.getElementById('totauxModal');
         if (modal.style.display === 'flex') {
-            fermerModal();
+            closeModal();
         }
     }
 });
 
-function afficherResumesParColonnesDansModal() {
-    let totauxParColonne = calculerTotauxParColonne();
+function displaySummariesInModal() {
+    let columnTotals = calculateTotalsByColumn();
     let summaryContent = document.getElementById('summaryContent');
     summaryContent.innerHTML = '';
 
     let gridContainer = document.createElement('div');
     gridContainer.className = 'grid-container';
 
-    for (let colonne in totauxParColonne) {
-        console.log(colonne);
-        let colonnesNumeriques = Object.keys(totauxParColonne[colonne][Object.keys(totauxParColonne[colonne])[0]]);
-        let tableauHTML = `<div class="table-container"><table class="styled-table"><thead><tr><th>${colonne}</th>`;
-        colonnesNumeriques.forEach(colNum => {
-            tableauHTML += `<th>${colNum}</th>`;
+    for (let column in columnTotals) {
+        let numericColumns = Object.keys(columnTotals[column][Object.keys(columnTotals[column])[0]]);
+        let tableHTML = `<div class="table-container"><table class="styled-table"><thead><tr><th>${column}</th>`;
+        numericColumns.forEach(colNum => {
+            tableHTML += `<th>${colNum}</th>`;
         });
 
-        tableauHTML += `</tr></thead><tbody>`;
-        for (let valeurColonne in totauxParColonne[colonne]) {
-            tableauHTML += `<tr><td>${valeurColonne}</td>`;
-            colonnesNumeriques.forEach(colNum => {
-                tableauHTML += `<td>${totauxParColonne[colonne][valeurColonne][colNum] || 0}</td>`;
+        tableHTML += `</tr></thead><tbody>`;
+        for (let columnValue in columnTotals[column]) {
+            tableHTML += `<tr><td>${columnValue}</td>`;
+            numericColumns.forEach(colNum => {
+                tableHTML += `<td>${columnTotals[column][columnValue][colNum] || 0}</td>`;
             });
-            tableauHTML += `</tr>`;
+            tableHTML += `</tr>`;
         }
-        tableauHTML += `</tbody></table></div>`;
-        gridContainer.innerHTML += tableauHTML;
+        tableHTML += `</tbody></table></div>`;
+        gridContainer.innerHTML += tableHTML;
     }
 
     summaryContent.appendChild(gridContainer);
 
-    if (Object.keys(totauxParColonne).length === 0) {
-        summaryContent.innerHTML = '<p>Aucune donnée trouvée.</p>';
+    if (Object.keys(columnTotals).length === 0) {
+        summaryContent.innerHTML = '<p>No data found.</p>';
     }
+}
+
+document.getElementById('openSummaryModalBtn').addEventListener('click', () => {
+    document.getElementById('summaryModal').style.display = 'flex';
+    displaySummariesInModal();
+});
+
+document.getElementById('closeSummaryModalBtn').addEventListener('click', () => {
+    document.getElementById('summaryModal').style.display = 'none';
+});
+
+function closeModals() {
+    document.getElementById('totauxModal').style.display = 'none';
+    document.getElementById('summaryModal').style.display = 'none';
+}
+
+function getTotalTicketsFromDOM() {
+    let totalTicketsElement = document.querySelector('span[data-testid="filter-results-count"]');
+    if (totalTicketsElement) {
+        return parseInt(totalTicketsElement.textContent.trim(), 10);
+    }
+    return 0;
 }
 
 let actualPercentage = 0;
 let hideTimeout = null;
+
 function updatePercentage(percentage) {
     if (percentage === actualPercentage) {
         return;
@@ -426,81 +405,58 @@ function calculateColor(percentage) {
     return `rgb(${red}, ${green}, 153)`;
 }
 
-function mettreAJourTexteBouton() {
-    let nombreDeTicketsCaptures = Object.keys(assignations).length;
-    let nombreTotalDeTickets = getTotalTicketsFromDOM();
-    let bouton = document.getElementById('openModalBtn');
+function updateButtonText() {
+    let capturedTickets = Object.keys(assignments).length;
+    let totalTickets = getTotalTicketsFromDOM();
+    let button = document.getElementById('openModalBtn');
 
-    if (nombreDeTicketsCaptures !== nombreTotalDeTickets) {
-        bouton.innerText = `Totals - ${nombreDeTicketsCaptures}/${nombreTotalDeTickets}`;
+    if (capturedTickets !== totalTickets) {
+        button.innerText = `Totals - ${capturedTickets}/${totalTickets}`;
     } else {
-        bouton.innerText = `Totals`;
+        button.innerText = `Totals`;
     }
 
     let gptotsModal = document.getElementById('progress-count');
-    gptotsModal.innerText = `${nombreDeTicketsCaptures} / ${nombreTotalDeTickets}`;
+    gptotsModal.innerText = `${capturedTickets} / ${totalTickets}`;
 
-    updatePercentage(Math.round((nombreDeTicketsCaptures / nombreTotalDeTickets) * 100));
+    updatePercentage(Math.round((capturedTickets / totalTickets) * 100));
 }
 
-function getTotalTicketsFromDOM() {
-    let totalTicketsElement = document.querySelector('span[data-testid="filter-results-count"]');
-    if (totalTicketsElement) {
-        return parseInt(totalTicketsElement.textContent.trim(), 10);
-    }
-    return 0;
-}
-
-function calculerTotauxParColonne() {
-    let totauxParColonne = {};
-    for (let titre in assignations) {
-        let tache = assignations[titre];
-        let colonnesTextuelles = tache.colonnesTextuelles;
-        console.log(colonnesTextuelles);
-        for (let colonne in colonnesTextuelles) {
-            let valeurColonne = colonnesTextuelles[colonne];
-            if (!totauxParColonne[colonne]) {
-                totauxParColonne[colonne] = {};
+function calculateTotalsByColumn() {
+    let columnTotals = {};
+    for (let title in assignments) {
+        let task = assignments[title];
+        let textColumns = task.textColumns;
+        for (let column in textColumns) {
+            let columnValue = textColumns[column];
+            if (!columnTotals[column]) {
+                columnTotals[column] = {};
             }
-            if (!totauxParColonne[colonne][valeurColonne]) {
-                totauxParColonne[colonne][valeurColonne] = {};
+            if (!columnTotals[column][columnValue]) {
+                columnTotals[column][columnValue] = {};
             }
-            for (let colonneNumerique in tache.sommesColonnes) {
-                if (!totauxParColonne[colonne][valeurColonne][colonneNumerique]) {
-                    totauxParColonne[colonne][valeurColonne][colonneNumerique] = 0;
+            for (let numericColumn in task.columnSums) {
+                if (!columnTotals[column][columnValue][numericColumn]) {
+                    columnTotals[column][columnValue][numericColumn] = 0;
                 }
-                totauxParColonne[colonne][valeurColonne][colonneNumerique] += tache.sommesColonnes[colonneNumerique];
+                columnTotals[column][columnValue][numericColumn] += task.columnSums[numericColumn];
             }
         }
     }
 
-    return totauxParColonne;
-}
-
-document.getElementById('openSummaryModalBtn').addEventListener('click', () => {
-    document.getElementById('summaryModal').style.display = 'flex';
-    afficherResumesParColonnesDansModal();
-});
-
-document.getElementById('closeSummaryModalBtn').addEventListener('click', () => {
-    document.getElementById('summaryModal').style.display = 'none';
-});
-
-function fermerModals() {
-    document.getElementById('totauxModal').style.display = 'none';
-    document.getElementById('summaryModal').style.display = 'none';
+    return columnTotals;
 }
 
 window.addEventListener('click', (event) => {
     let summaryModal = document.getElementById('summaryModal');
-    let totauxModal = document.getElementById('totauxModal');
-    if ((event.target === summaryModal)||(event.target === totauxModal)) {
-        fermerModals();
+    let totalsModal = document.getElementById('totauxModal');
+    if ((event.target === summaryModal) || (event.target === totalsModal)) {
+        closeModals();
     }
 });
 
 window.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
-        fermerModals();
+        closeModals();
     }
 });
