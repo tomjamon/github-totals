@@ -1,6 +1,6 @@
 function debounce(func, wait) {
     let timeout;
-    return function() {
+    return function () {
         clearTimeout(timeout);
         timeout = setTimeout(() => func.apply(this, arguments), wait);
     };
@@ -18,7 +18,7 @@ function observeTableScrollContainer() {
     if (!targetNode) {
         return;
     }
-    const observerTable = new MutationObserver(function(mutationsList) {
+    const observerTable = new MutationObserver(function (mutationsList) {
         for (let mutation of mutationsList) {
             if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
                 mutation.addedNodes.forEach(node => {
@@ -30,14 +30,15 @@ function observeTableScrollContainer() {
             }
         }
     });
-    observerTable.observe(targetNode, { childList: true, subtree: true });
+    observerTable.observe(targetNode, {childList: true, subtree: true});
 }
 
-window.addEventListener('load', function() {
+window.addEventListener('load', function () {
     observeTableScrollContainer();
 });
 
 let summariesButton, assigneeTotalsButton;
+
 function addButtons() {
     const navigationElement = document.querySelector('div[role="navigation"]');
     const buttonGroupElement = navigationElement.querySelector('[class^="ButtonGroup"]');
@@ -57,6 +58,7 @@ function addButtons() {
 
     buttonGroupElement.appendChild(assigneeTotalsButton);
 }
+
 addButtons();
 
 let assignments = {};
@@ -120,7 +122,7 @@ function captureRowData(row) {
         let assigneeName = assigneeElement ? assigneeElement.alt : null;
         let assigneeAvatar = assigneeElement ? assigneeElement.src : null;
         if (assigneeName && !assignments[title].assignees.some(a => a.name === assigneeName)) {
-            assignments[title].assignees.push({ name: assigneeName, avatar: assigneeAvatar });
+            assignments[title].assignees.push({name: assigneeName, avatar: assigneeAvatar});
         }
     }
 }
@@ -147,7 +149,7 @@ function observeTable() {
                 });
             });
         });
-        observer.observe(table, { childList: true, subtree: true });
+        observer.observe(table, {childList: true, subtree: true});
     }
 }
 
